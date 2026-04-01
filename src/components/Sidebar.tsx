@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
 const navItems = [
   { label: 'Dashboard', href: '/', icon: '📊' },
@@ -42,7 +43,13 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-100">
+      <div className="p-4 border-t border-gray-100 space-y-3">
+        <button
+          onClick={async () => { await supabase.auth.signOut(); window.location.href = '/login' }}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+        >
+          🚪 Sair
+        </button>
         <div className="text-xs text-gray-400 text-center">
           Zeca 🦜 × Rafa Brito
         </div>
