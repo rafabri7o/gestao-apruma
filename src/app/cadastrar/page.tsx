@@ -172,6 +172,18 @@ export default function CadastrarPage() {
 
 
 
+        <div>
+          <label className={labelClass}>Seguidores ao Entrar</label>
+          <input
+            type="number"
+            className={inputClass}
+            placeholder="Ex: 1500"
+            value={form.seguidores_inicial}
+            onChange={(e) => handleChange('seguidores_inicial', Number(e.target.value))}
+          />
+          <p className="text-xs text-gray-400 mt-1">Preenchido automaticamente pelo Instagram, mas pode editar</p>
+        </div>
+
         <button
           type="submit"
           disabled={submitting}
