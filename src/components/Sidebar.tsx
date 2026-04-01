@@ -15,9 +15,8 @@ export default function Sidebar() {
     <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 flex flex-col z-50">
       {/* Logo */}
       <div className="p-6">
-        <div className="gradient-bg rounded-2xl p-4 text-white text-center">
-          <div className="text-2xl font-bold">📈 Apruma</div>
-          <div className="text-xs opacity-80 mt-1">Gestão de Mentoria</div>
+        <div className="rounded-2xl p-4 flex items-center justify-center">
+          <img src="/logo-apruma.jpg" alt="Apruma - Rafa Brito" className="h-12 object-contain" />
         </div>
       </div>
 

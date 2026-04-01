@@ -92,10 +92,10 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete }: Prop
             <div>
               <label className={labelClass}>Turma</label>
               <select className={inputClass} value={form.turma} onChange={(e) => handleChange('turma', e.target.value)}>
-                <option value="Turma 1">Turma 1</option>
-                <option value="Turma 2">Turma 2</option>
-                <option value="Turma 3">Turma 3</option>
-                <option value="Turma 4">Turma 4</option>
+                <option value="Turma 1 - Rafa">Turma 1 - Rafa</option>
+                <option value="Turma 2 - Rafa">Turma 2 - Rafa</option>
+                <option value="Turma 3 - Carlos">Turma 3 - Carlos</option>
+                <option value="Turma 4 - Ivens">Turma 4 - Ivens</option>
               </select>
             </div>
             <div>
