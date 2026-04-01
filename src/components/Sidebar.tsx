@@ -17,7 +17,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-6">
         <div className="rounded-2xl p-4 flex items-center justify-center">
-          <img src="/logo-apruma.jpg" alt="Apruma - Rafa Brito" className="h-12 object-contain" />
+          <img src="/logo-apruma.png" alt="Apruma - Rafa Brito" className="h-12 object-contain" />
         </div>
       </div>
 

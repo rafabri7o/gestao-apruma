@@ -36,7 +36,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <img src="/logo-apruma.jpg" alt="Apruma" className="h-16 object-contain" />
+          <img src="/logo-apruma.png" alt="Apruma" className="h-16 object-contain" />
         </div>
 
         {/* Card */}
