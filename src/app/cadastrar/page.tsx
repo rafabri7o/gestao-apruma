@@ -170,35 +170,7 @@ export default function CadastrarPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className={labelClass}>Seguidores Inicial</label>
-            <input
-              type="number"
-              className={inputClass}
-              value={form.seguidores_inicial}
-              onChange={(e) => handleChange('seguidores_inicial', Number(e.target.value))}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Seguidores Atual</label>
-            <input
-              type="number"
-              className={inputClass}
-              value={form.seguidores_atual}
-              onChange={(e) => handleChange('seguidores_atual', Number(e.target.value))}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Posts</label>
-            <input
-              type="number"
-              className={inputClass}
-              value={form.posts}
-              onChange={(e) => handleChange('posts', Number(e.target.value))}
-            />
-          </div>
-        </div>
+
 
         <button
           type="submit"
