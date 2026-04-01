@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel de Mentoria — Rafa Brito</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -399,16 +400,69 @@
     </div>
 
     <script>
-        // ==================== DATA ====================
-        const STORAGE_KEY = 'mentoria_mentorados';
+        // ==================== SUPABASE ====================
+        const SUPABASE_URL = 'https://ckxkjhmxrcaeqlvbgumd.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNreGtqaG14cmNhZXFsdmJndW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjQ3NjIsImV4cCI6MjA5MDY0MDc2Mn0.ypCXQmR9gsT4GSmnsbDbSfjZymAvZhhDrj4bWWde_FU';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        function getData() {
-            const data = localStorage.getItem(STORAGE_KEY);
-            return data ? JSON.parse(data) : [];
+        // In-memory cache
+        let _cache = [];
+
+        async function getData() {
+            const { data, error } = await supabase.from('mentorados').select('*').order('created_at', { ascending: true });
+            if (error) { console.error('Supabase read error:', error); return _cache; }
+            // Map DB columns to camelCase for compatibility
+            _cache = (data || []).map(row => ({
+                id: row.id,
+                nome: row.nome,
+                instagram: row.instagram,
+                nicho: row.nicho,
+                turma: row.turma,
+                plano: row.plano,
+                dataInicio: row.data_inicio,
+                seguidoresInicial: row.seguidores_inicial,
+                seguidoresAtual: row.seguidores_atual,
+                posts: row.posts,
+                avatar: row.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(row.nome)}&background=E9D5FF&color=7E22CE&size=128&bold=true`,
+                createdAt: row.created_at
+            }));
+            return _cache;
         }
 
-        function saveData(data) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        async function insertMentorado(m) {
+            const { error } = await supabase.from('mentorados').insert({
+                nome: m.nome,
+                instagram: m.instagram,
+                nicho: m.nicho,
+                turma: m.turma,
+                plano: m.plano,
+                data_inicio: m.dataInicio,
+                seguidores_inicial: m.seguidoresInicial,
+                seguidores_atual: m.seguidoresAtual,
+                posts: m.posts,
+                avatar: m.avatar
+            });
+            if (error) console.error('Insert error:', error);
+        }
+
+        async function updateMentoradoDB(id, m) {
+            const { error } = await supabase.from('mentorados').update({
+                nome: m.nome,
+                instagram: m.instagram,
+                nicho: m.nicho,
+                turma: m.turma,
+                plano: m.plano,
+                seguidores_inicial: m.seguidoresInicial,
+                seguidores_atual: m.seguidoresAtual,
+                posts: m.posts,
+                avatar: m.avatar
+            }).eq('id', id);
+            if (error) console.error('Update error:', error);
+        }
+
+        async function deleteMentoradoDB(id) {
+            const { error } = await supabase.from('mentorados').delete().eq('id', id);
+            if (error) console.error('Delete error:', error);
         }
 
         // ==================== NAVIGATION ====================
@@ -447,34 +501,32 @@
         }
 
         // ==================== SAVE MENTORADO ====================
-        function saveMentorado(e) {
+        async function saveMentorado(e) {
             e.preventDefault();
-            const data = getData();
+            const nome = document.getElementById('input-nome').value.trim();
+            const segIni = parseInt(document.getElementById('input-seguidores-inicial').value) || 0;
             const mentorado = {
-                id: Date.now().toString(),
-                nome: document.getElementById('input-nome').value.trim(),
+                nome,
                 instagram: document.getElementById('input-instagram').value.replace('@', '').trim(),
                 nicho: document.getElementById('input-nicho').value.trim(),
                 turma: document.getElementById('input-turma').value,
                 plano: parseInt(document.getElementById('input-plano').value),
                 dataInicio: document.getElementById('input-data-inicio').value,
-                seguidoresInicial: parseInt(document.getElementById('input-seguidores-inicial').value) || 0,
-                seguidoresAtual: parseInt(document.getElementById('input-seguidores-atual').value) || parseInt(document.getElementById('input-seguidores-inicial').value) || 0,
+                seguidoresInicial: segIni,
+                seguidoresAtual: parseInt(document.getElementById('input-seguidores-atual').value) || segIni,
                 posts: parseInt(document.getElementById('input-posts').value) || 0,
-                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(document.getElementById('input-nome').value.trim())}&background=E9D5FF&color=7E22CE&size=128&bold=true`,
-                createdAt: new Date().toISOString()
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}&background=E9D5FF&color=7E22CE&size=128&bold=true`
             };
-            data.push(mentorado);
-            saveData(data);
+            await insertMentorado(mentorado);
             showPage('dashboard');
         }
 
         // ==================== RENDER DASHBOARD ====================
-        function renderDashboard() {
-            const data = getData();
+        async function renderDashboard() {
+            const data = await getData();
             updateStats(data);
             updateTurmaFilter(data);
-            applyFilters();
+            applyFilters(data);
         }
 
         function updateStats(data) {
@@ -510,8 +562,8 @@
             select.value = currentVal;
         }
 
-        function applyFilters() {
-            let data = getData();
+        async function applyFilters(preloaded) {
+            let data = preloaded || await getData();
             const search = document.getElementById('filter-search').value.toLowerCase();
             const turma = document.getElementById('filter-turma').value;
             const plano = document.getElementById('filter-plano').value;
@@ -622,8 +674,8 @@
         }
 
         // ==================== EDIT / DELETE ====================
-        function openEdit(id) {
-            const data = getData();
+        async function openEdit(id) {
+            const data = await getData();
             const m = data.find(x => x.id === id);
             if (!m) return;
 
@@ -644,34 +696,30 @@
             document.getElementById('modal-edit').classList.add('hidden');
         }
 
-        function updateMentorado(e) {
+        async function updateMentorado(e) {
             e.preventDefault();
-            const data = getData();
             const id = document.getElementById('edit-id').value;
-            const idx = data.findIndex(x => x.id === id);
-            if (idx === -1) return;
-
-            data[idx].nome = document.getElementById('edit-nome').value.trim();
-            data[idx].instagram = document.getElementById('edit-instagram').value.replace('@', '').trim();
-            data[idx].nicho = document.getElementById('edit-nicho').value.trim();
-            data[idx].turma = document.getElementById('edit-turma').value;
-            data[idx].plano = parseInt(document.getElementById('edit-plano').value);
-            data[idx].seguidoresInicial = parseInt(document.getElementById('edit-seg-inicial').value) || 0;
-            data[idx].seguidoresAtual = parseInt(document.getElementById('edit-seg-atual').value) || 0;
-            data[idx].posts = parseInt(document.getElementById('edit-posts').value) || 0;
-            data[idx].avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(data[idx].nome)}&background=E9D5FF&color=7E22CE&size=128&bold=true`;
-
-            saveData(data);
+            const nome = document.getElementById('edit-nome').value.trim();
+            const updated = {
+                nome,
+                instagram: document.getElementById('edit-instagram').value.replace('@', '').trim(),
+                nicho: document.getElementById('edit-nicho').value.trim(),
+                turma: document.getElementById('edit-turma').value,
+                plano: parseInt(document.getElementById('edit-plano').value),
+                seguidoresInicial: parseInt(document.getElementById('edit-seg-inicial').value) || 0,
+                seguidoresAtual: parseInt(document.getElementById('edit-seg-atual').value) || 0,
+                posts: parseInt(document.getElementById('edit-posts').value) || 0,
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}&background=E9D5FF&color=7E22CE&size=128&bold=true`
+            };
+            await updateMentoradoDB(id, updated);
             closeModal();
             renderDashboard();
         }
 
-        function deleteMentorado() {
+        async function deleteMentorado() {
             const id = document.getElementById('edit-id').value;
             if (!confirm('Tem certeza que quer excluir esse mentorado?')) return;
-            let data = getData();
-            data = data.filter(x => x.id !== id);
-            saveData(data);
+            await deleteMentoradoDB(id);
             closeModal();
             renderDashboard();
         }
@@ -684,22 +732,6 @@
         // ==================== INIT ====================
         document.getElementById('input-data-inicio').value = new Date().toISOString().split('T')[0];
         renderDashboard();
-
-        // ==================== DEMO DATA (remove after testing) ====================
-        if (getData().length === 0) {
-            const demoData = [
-                { id: '1', nome: 'Ana Costa', instagram: 'anacosta.fit', nicho: 'Fitness', turma: 'Turma 1', plano: 12, dataInicio: '2025-10-15', seguidoresInicial: 2300, seguidoresAtual: 8700, posts: 89, avatar: 'https://ui-avatars.com/api/?name=Ana+Costa&background=E9D5FF&color=7E22CE&size=128&bold=true' },
-                { id: '2', nome: 'Bruno Mendes', instagram: 'brunomendes', nicho: 'Finanças', turma: 'Turma 1', plano: 6, dataInicio: '2026-01-10', seguidoresInicial: 5100, seguidoresAtual: 12400, posts: 45, avatar: 'https://ui-avatars.com/api/?name=Bruno+Mendes&background=E9D5FF&color=7E22CE&size=128&bold=true' },
-                { id: '3', nome: 'Carla Souza', instagram: 'carlasouza.coach', nicho: 'Coach de Vida', turma: 'Turma 2', plano: 12, dataInicio: '2025-08-01', seguidoresInicial: 800, seguidoresAtual: 4200, posts: 132, avatar: 'https://ui-avatars.com/api/?name=Carla+Souza&background=E9D5FF&color=7E22CE&size=128&bold=true' },
-                { id: '4', nome: 'Diego Alves', instagram: 'diegoalves.dev', nicho: 'Tecnologia', turma: 'Turma 2', plano: 6, dataInicio: '2026-02-01', seguidoresInicial: 15000, seguidoresAtual: 18500, posts: 28, avatar: 'https://ui-avatars.com/api/?name=Diego+Alves&background=E9D5FF&color=7E22CE&size=128&bold=true' },
-                { id: '5', nome: 'Fernanda Lima', instagram: 'fe.lima.receitas', nicho: 'Culinária', turma: 'Turma 3', plano: 12, dataInicio: '2025-11-20', seguidoresInicial: 1200, seguidoresAtual: 6800, posts: 97, avatar: 'https://ui-avatars.com/api/?name=Fernanda+Lima&background=E9D5FF&color=7E22CE&size=128&bold=true' },
-                { id: '6', nome: 'Gabriel Santos', instagram: 'gabsantos', nicho: 'Marketing', turma: 'Turma 3', plano: 6, dataInicio: '2026-03-01', seguidoresInicial: 3400, seguidoresAtual: 3900, posts: 12, avatar: 'https://ui-avatars.com/api/?name=Gabriel+Santos&background=E9D5FF&color=7E22CE&size=128&bold=true' },
-                { id: '7', nome: 'Helena Rocha', instagram: 'helenarocha.yoga', nicho: 'Yoga', turma: 'Turma 4', plano: 12, dataInicio: '2025-09-15', seguidoresInicial: 4500, seguidoresAtual: 11200, posts: 76, avatar: 'https://ui-avatars.com/api/?name=Helena+Rocha&background=E9D5FF&color=7E22CE&size=128&bold=true' },
-                { id: '8', nome: 'Igor Pereira', instagram: 'igorpereira.foto', nicho: 'Fotografia', turma: 'Turma 4', plano: 6, dataInicio: '2025-12-01', seguidoresInicial: 9800, seguidoresAtual: 14300, posts: 54, avatar: 'https://ui-avatars.com/api/?name=Igor+Pereira&background=E9D5FF&color=7E22CE&size=128&bold=true' },
-            ];
-            saveData(demoData);
-            renderDashboard();
-        }
     </script>
 </body>
 </html>
