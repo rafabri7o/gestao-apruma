@@ -145,7 +145,7 @@ export default function MentoradosTable({ mentorados, onEdit, onRefresh }: Props
                     </td>
                     <td className="px-4 py-4">
                       <div className="font-medium text-gray-900">{formatNumber(m.seguidores_atual)}</div>
-                      <div className="text-gray-400 text-xs">de {formatNumber(m.seguidores_inicial)}</div>
+                      <div className="text-gray-400 text-xs">tinha {formatNumber(m.seguidores_inicial)}</div>
                     </td>
                     <td className="px-4 py-4">
                       <span className={`font-medium ${growth >= 0 ? 'text-green-600' : 'text-red-500'}`}>
