@@ -8,17 +8,14 @@ type Props = {
 export default function StatsCards({ mentorados }: Props) {
   const total = mentorados.length
 
-  const avgGrowth = total > 0
-    ? mentorados.reduce((acc, m) => acc + calcGrowth(m.seguidores_atual, m.seguidores_inicial), 0) / total
-    : 0
-
-  const plano12 = mentorados.filter((m) => m.plano === 12).length
+  const gained100k = mentorados.filter((m) => (m.seguidores_atual - m.seguidores_inicial) >= 100000).length
+  const gained30k = mentorados.filter((m) => (m.seguidores_atual - m.seguidores_inicial) >= 30000).length
   const plano6 = mentorados.filter((m) => m.plano === 6).length
 
   const cards = [
     { label: 'Total Mentorados', value: total, color: 'bg-brand-600', icon: '👥' },
-    { label: 'Crescimento Médio', value: `${avgGrowth.toFixed(1)}%`, color: 'bg-green-500', icon: '📈' },
-    { label: 'Plano 12 Meses', value: plano12, color: 'bg-brand-600', icon: '⭐' },
+    { label: 'Ganhou +100 mil seguidores', value: gained100k, color: 'bg-green-500', icon: '🚀' },
+    { label: 'Ganhou +30 mil seguidores', value: gained30k, color: 'bg-brand-600', icon: '🔥' },
     { label: 'Plano 6 Meses', value: plano6, color: 'bg-brand-400', icon: '🎯' },
   ]
 
