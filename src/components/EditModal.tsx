@@ -116,7 +116,7 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete }: Prop
               <input type="number" className={inputClass} value={form.seguidores_atual} onChange={(e) => handleChange('seguidores_atual', Number(e.target.value))} />
             </div>
             <div>
-              <label className={labelClass}>Posts</label>
+              <label className={labelClass}>Posts 7 Dias</label>
               <input type="number" className={inputClass} value={form.posts} onChange={(e) => handleChange('posts', Number(e.target.value))} />
             </div>
           </div>

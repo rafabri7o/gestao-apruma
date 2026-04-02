@@ -75,7 +75,7 @@ export default function MentoradosTable({ mentorados, onEdit, onRefresh }: Props
             <option value="nome">Ordenar: Nome</option>
             <option value="seguidores">Ordenar: Seguidores</option>
             <option value="crescimento">Ordenar: Crescimento</option>
-            <option value="posts">Ordenar: Posts</option>
+            <option value="posts">Ordenar: Posts 7 Dias</option>
           </select>
           <button
             onClick={onRefresh}
@@ -104,7 +104,7 @@ export default function MentoradosTable({ mentorados, onEdit, onRefresh }: Props
                 <th className="px-4 py-4 font-medium">Turma</th>
                 <th className="px-4 py-4 font-medium">Seguidores</th>
                 <th className="px-4 py-4 font-medium">Crescimento</th>
-                <th className="px-4 py-4 font-medium">Posts</th>
+                <th className="px-4 py-4 font-medium">Posts 7 Dias</th>
                 <th className="px-4 py-4 font-medium">Plano</th>
                 <th className="px-4 py-4 font-medium">Tempo Restante</th>
                 <th className="px-4 py-4 font-medium">Ações</th>

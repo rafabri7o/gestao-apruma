@@ -52,7 +52,7 @@ export default function CadastrarPage() {
             seguidores_inicial: data.follower_count,
             seguidores_atual: data.follower_count,
             avatar: data.profile_pic_url || '',
-            posts: data.media_count || prev.posts,
+            posts: data.posts_last_7d ?? prev.posts,
             ...(data.full_name && !prev.nome ? { nome: data.full_name } : {}),
           }))
         } else {

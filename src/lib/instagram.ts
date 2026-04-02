@@ -8,6 +8,7 @@ export type InstagramProfile = {
   follower_count: number
   following_count: number
   media_count: number
+  posts_last_7d: number
   biography: string
 }
 
@@ -27,6 +28,15 @@ export async function fetchInstagramProfile(username: string): Promise<Instagram
     const data = await res.json()
     if (!data || !data.username) return null
 
+    // Count posts from last 7 days
+    const now = Math.floor(Date.now() / 1000)
+    const sevenDaysAgo = now - (7 * 24 * 60 * 60)
+    const edges = data.edge_owner_to_timeline_media?.edges || []
+    const postsLast7d = edges.filter(
+      (e: { node?: { taken_at_timestamp?: number } }) =>
+        (e.node?.taken_at_timestamp || 0) >= sevenDaysAgo
+    ).length
+
     return {
       username: data.username || cleanUsername,
       full_name: data.full_name || '',
@@ -34,6 +44,7 @@ export async function fetchInstagramProfile(username: string): Promise<Instagram
       follower_count: data.edge_followed_by?.count || 0,
       following_count: data.edge_follow?.count || 0,
       media_count: data.edge_owner_to_timeline_media?.count || 0,
+      posts_last_7d: postsLast7d,
       biography: data.biography || '',
     }
   } catch (err) {
