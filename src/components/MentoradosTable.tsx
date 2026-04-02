@@ -123,8 +123,8 @@ export default function MentoradosTable({ mentorados, onEdit, onRefresh }: Props
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-brand-100 overflow-hidden flex-shrink-0">
-                          {m.avatar ? (
-                            <img src={m.avatar} alt={m.nome} className="w-full h-full object-cover" />
+                          {m.instagram ? (
+                            <img src={`/api/avatar/${m.instagram}`} alt={m.nome} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-brand-600 font-bold">
                               {m.nome.charAt(0).toUpperCase()}

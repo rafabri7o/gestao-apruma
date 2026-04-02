@@ -35,6 +35,7 @@ export async function POST() {
             .update({
               posts: profile.posts_last_7d,
               seguidores_atual: profile.follower_count,
+              avatar: profile.profile_pic_url || undefined,
             })
             .eq('id', m.id)
 
