@@ -36,7 +36,7 @@ export default function MentoradosTable({ mentorados, onEdit, onRefresh }: Props
       switch (sort) {
         case 'nome': return a.nome.localeCompare(b.nome)
         case 'seguidores': return b.seguidores_atual - a.seguidores_atual
-        case 'crescimento': return calcGrowth(b.seguidores_atual, b.seguidores_inicial) - calcGrowth(a.seguidores_atual, a.seguidores_inicial)
+        case 'crescimento': return (b.seguidores_atual - b.seguidores_inicial) - (a.seguidores_atual - a.seguidores_inicial)
         case 'posts': return b.posts - a.posts
         default: return 0
       }
@@ -93,7 +93,7 @@ export default function MentoradosTable({ mentorados, onEdit, onRefresh }: Props
           >
             <option value="nome">Ordenar: Nome</option>
             <option value="seguidores">Ordenar: Seguidores</option>
-            <option value="crescimento">Ordenar: Crescimento</option>
+            <option value="crescimento">Ordenar: Seguidores Ganhos</option>
             <option value="posts">Ordenar: Posts 7 Dias</option>
           </select>
           <button
@@ -122,7 +122,7 @@ export default function MentoradosTable({ mentorados, onEdit, onRefresh }: Props
                 <th className="px-4 py-4 font-medium">Nicho</th>
                 <th className="px-4 py-4 font-medium">Turma</th>
                 <th className="px-4 py-4 font-medium">Seguidores</th>
-                <th className="px-4 py-4 font-medium">Crescimento</th>
+                <th className="px-4 py-4 font-medium">Seguidores Ganhos</th>
                 <th className="px-4 py-4 font-medium">Posts 7 Dias</th>
                 <th className="px-4 py-4 font-medium">Plano</th>
                 <th className="px-4 py-4 font-medium">Tempo Restante</th>
@@ -167,9 +167,14 @@ export default function MentoradosTable({ mentorados, onEdit, onRefresh }: Props
                       <div className="text-gray-400 text-xs">tinha {formatNumber(m.seguidores_inicial)}</div>
                     </td>
                     <td className="px-4 py-4">
-                      <span className={`font-medium ${growth >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                        {growth >= 0 ? '🚀' : '📉'} {growth.toFixed(1)}%
-                      </span>
+                      {(() => {
+                        const gained = m.seguidores_atual - m.seguidores_inicial
+                        return (
+                          <span className={`font-medium ${gained >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                            {gained >= 0 ? '+' : ''}{formatNumber(gained)}
+                          </span>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-4 text-gray-600">{m.posts}</td>
                     <td className="px-4 py-4">
