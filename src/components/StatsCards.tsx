@@ -13,12 +13,14 @@ export default function StatsCards({ mentorados }: Props) {
   const gained10k = mentorados.filter((m) => { const g = m.seguidores_atual - m.seguidores_inicial; return g >= 10000 && g < 30000 }).length
   const gainedUnder10k = mentorados.filter((m) => (m.seguidores_atual - m.seguidores_inicial) < 10000).length
 
+  const pct = (v: number) => total > 0 ? `${((v / total) * 100).toFixed(0)}%` : '0%'
+
   const cards = [
-    { label: 'Total Mentorados', value: total, color: 'bg-brand-600', icon: '👥', badge: 'Mentorados' },
-    { label: 'Ganhou +100 mil seguidores', value: gained100k, color: 'bg-green-500', icon: '🏆', badge: null },
-    { label: 'Ganhou +30 mil seguidores', value: gained30k, color: 'bg-brand-600', icon: '🔥', badge: null },
-    { label: 'Ganhou +10 mil seguidores', value: gained10k, color: 'bg-brand-400', icon: '💪', badge: null },
-    { label: 'Ganhou menos de 10 mil', value: gainedUnder10k, color: 'bg-red-500', icon: '🆘', badge: null },
+    { label: 'Total Mentorados', value: total, color: 'bg-brand-600', icon: '👥', badge: 'Mentorados', percent: null },
+    { label: 'Ganhou +100 mil seguidores', value: gained100k, color: 'bg-green-500', icon: '🏆', badge: null, percent: pct(gained100k) },
+    { label: 'Ganhou +30 mil seguidores', value: gained30k, color: 'bg-brand-600', icon: '🔥', badge: null, percent: pct(gained30k) },
+    { label: 'Ganhou +10 mil seguidores', value: gained10k, color: 'bg-brand-400', icon: '💪', badge: null, percent: pct(gained10k) },
+    { label: 'Ganhou menos de 10 mil', value: gainedUnder10k, color: 'bg-red-500', icon: '🆘', badge: null, percent: pct(gainedUnder10k) },
   ]
 
   return (
@@ -33,6 +35,11 @@ export default function StatsCards({ mentorados }: Props) {
             {card.badge && (
               <span className={`${card.color} text-white text-xs font-bold px-2 py-1 rounded-lg`}>
                 {card.badge}
+              </span>
+            )}
+            {card.percent && (
+              <span className="text-sm font-bold text-gray-400">
+                {card.percent}
               </span>
             )}
           </div>
