@@ -9,8 +9,8 @@ export default function StatsCards({ mentorados }: Props) {
   const total = mentorados.length
 
   const gained100k = mentorados.filter((m) => (m.seguidores_atual - m.seguidores_inicial) >= 100000).length
-  const gained30k = mentorados.filter((m) => (m.seguidores_atual - m.seguidores_inicial) >= 30000).length
-  const gained10k = mentorados.filter((m) => (m.seguidores_atual - m.seguidores_inicial) >= 10000).length
+  const gained30k = mentorados.filter((m) => { const g = m.seguidores_atual - m.seguidores_inicial; return g >= 30000 && g < 100000 }).length
+  const gained10k = mentorados.filter((m) => { const g = m.seguidores_atual - m.seguidores_inicial; return g >= 10000 && g < 30000 }).length
   const gainedUnder10k = mentorados.filter((m) => (m.seguidores_atual - m.seguidores_inicial) < 10000).length
 
   const cards = [
