@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase, type Mentorado } from '@/lib/supabase'
 import StatsCards from '@/components/StatsCards'
 import MentoradosTable from '@/components/MentoradosTable'
 import EditModal from '@/components/EditModal'
+import Filters from '@/components/Filters'
 
 export default function Dashboard() {
   const [mentorados, setMentorados] = useState<Mentorado[]>([])
@@ -12,6 +13,13 @@ export default function Dashboard() {
   const [editing, setEditing] = useState<Mentorado | null>(null)
   const [updating, setUpdating] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<string | null>(null)
+
+  // Filters state
+  const [search, setSearch] = useState('')
+  const [turmaFilter, setTurmaFilter] = useState('')
+  const [planoFilter, setPlanoFilter] = useState('')
+  const [growthFilter, setGrowthFilter] = useState('')
+  const [sort, setSort] = useState('nome')
 
   const fetchMentorados = useCallback(async () => {
     setLoading(true)
@@ -44,10 +52,38 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchMentorados().then(() => {
-      // Auto-update Instagram data on load
       updateFromInstagram()
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const turmas = useMemo(() => [...new Set(mentorados.map((m) => m.turma))].sort(), [mentorados])
+
+  const filtered = useMemo(() => {
+    return mentorados
+      .filter((m) => {
+        const q = search.toLowerCase()
+        if (q && !m.nome.toLowerCase().includes(q) && !m.instagram.toLowerCase().includes(q) && !m.nicho.toLowerCase().includes(q)) return false
+        if (turmaFilter && m.turma !== turmaFilter) return false
+        if (planoFilter && m.plano !== Number(planoFilter)) return false
+        if (growthFilter) {
+          const gained = m.seguidores_atual - m.seguidores_inicial
+          if (growthFilter === '100k' && gained < 100000) return false
+          if (growthFilter === '30k' && (gained < 30000 || gained >= 100000)) return false
+          if (growthFilter === '10k' && (gained < 10000 || gained >= 30000)) return false
+          if (growthFilter === 'under10k' && gained >= 10000) return false
+        }
+        return true
+      })
+      .sort((a, b) => {
+        switch (sort) {
+          case 'nome': return a.nome.localeCompare(b.nome)
+          case 'seguidores': return b.seguidores_atual - a.seguidores_atual
+          case 'crescimento': return (b.seguidores_atual - b.seguidores_inicial) - (a.seguidores_atual - a.seguidores_inicial)
+          case 'posts': return b.posts - a.posts
+          default: return 0
+        }
+      })
+  }, [mentorados, search, turmaFilter, planoFilter, growthFilter, sort])
 
   return (
     <div>
@@ -79,7 +115,22 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <StatsCards mentorados={mentorados} />
+      <StatsCards mentorados={filtered} />
+
+      <Filters
+        search={search}
+        turmaFilter={turmaFilter}
+        planoFilter={planoFilter}
+        growthFilter={growthFilter}
+        sort={sort}
+        turmas={turmas}
+        onSearchChange={setSearch}
+        onTurmaChange={setTurmaFilter}
+        onPlanoChange={setPlanoFilter}
+        onGrowthChange={setGrowthFilter}
+        onSortChange={setSort}
+        onRefresh={fetchMentorados}
+      />
 
       {loading ? (
         <div className="bg-white rounded-2xl p-12 text-center text-gray-400 shadow-sm">
@@ -88,9 +139,8 @@ export default function Dashboard() {
         </div>
       ) : (
         <MentoradosTable
-          mentorados={mentorados}
+          mentorados={filtered}
           onEdit={setEditing}
-          onRefresh={fetchMentorados}
         />
       )}
 
