@@ -11,16 +11,18 @@ export default function StatsCards({ mentorados }: Props) {
   const gained100k = mentorados.filter((m) => (m.seguidores_atual - m.seguidores_inicial) >= 100000).length
   const gained30k = mentorados.filter((m) => (m.seguidores_atual - m.seguidores_inicial) >= 30000).length
   const gained10k = mentorados.filter((m) => (m.seguidores_atual - m.seguidores_inicial) >= 10000).length
+  const gainedUnder10k = mentorados.filter((m) => (m.seguidores_atual - m.seguidores_inicial) < 10000).length
 
   const cards = [
     { label: 'Total Mentorados', value: total, color: 'bg-brand-600', icon: '👥' },
     { label: 'Ganhou +100 mil seguidores', value: gained100k, color: 'bg-green-500', icon: '🏆' },
     { label: 'Ganhou +30 mil seguidores', value: gained30k, color: 'bg-brand-600', icon: '🔥' },
     { label: 'Ganhou +10 mil seguidores', value: gained10k, color: 'bg-brand-400', icon: '💪' },
+    { label: 'Ganhou menos de 10 mil', value: gainedUnder10k, color: 'bg-red-500', icon: '🆘' },
   ]
 
   return (
-    <div className="grid grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-5 gap-6 mb-8">
       {cards.map((card) => (
         <div
           key={card.label}
