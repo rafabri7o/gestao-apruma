@@ -14,6 +14,7 @@ export default function MentoradosTable({ mentorados, onEdit, onRefresh }: Props
   const [search, setSearch] = useState('')
   const [turmaFilter, setTurmaFilter] = useState('')
   const [planoFilter, setPlanoFilter] = useState('')
+  const [growthFilter, setGrowthFilter] = useState('')
   const [sort, setSort] = useState('nome')
 
   const filtered = mentorados
@@ -22,6 +23,13 @@ export default function MentoradosTable({ mentorados, onEdit, onRefresh }: Props
       if (q && !m.nome.toLowerCase().includes(q) && !m.instagram.toLowerCase().includes(q) && !m.nicho.toLowerCase().includes(q)) return false
       if (turmaFilter && m.turma !== turmaFilter) return false
       if (planoFilter && m.plano !== Number(planoFilter)) return false
+      if (growthFilter) {
+        const gained = m.seguidores_atual - m.seguidores_inicial
+        if (growthFilter === '100k' && gained < 100000) return false
+        if (growthFilter === '30k' && (gained < 30000 || gained >= 100000)) return false
+        if (growthFilter === '10k' && (gained < 10000 || gained >= 30000)) return false
+        if (growthFilter === 'under10k' && gained >= 10000) return false
+      }
       return true
     })
     .sort((a, b) => {
@@ -66,6 +74,17 @@ export default function MentoradosTable({ mentorados, onEdit, onRefresh }: Props
             <option value="">Todos os planos</option>
             <option value="6">6 meses</option>
             <option value="12">12 meses</option>
+          </select>
+          <select
+            value={growthFilter}
+            onChange={(e) => setGrowthFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+          >
+            <option value="">Todos os ganhos</option>
+            <option value="100k">🏆 Ganhou +100 mil seguidores</option>
+            <option value="30k">🔥 Ganhou +30 mil seguidores</option>
+            <option value="10k">💪 Ganhou +10 mil seguidores</option>
+            <option value="under10k">🆘 Ganhou -10 mil seguidores</option>
           </select>
           <select
             value={sort}
