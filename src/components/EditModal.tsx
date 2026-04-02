@@ -17,9 +17,7 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete }: Prop
     nicho: mentorado.nicho,
     turma: mentorado.turma,
     plano: mentorado.plano,
-    seguidores_inicial: mentorado.seguidores_inicial,
-    seguidores_atual: mentorado.seguidores_atual,
-    posts: mentorado.posts,
+    data_inicio: mentorado.data_inicio,
   })
   const [saving, setSaving] = useState(false)
 
@@ -106,19 +104,9 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete }: Prop
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className={labelClass}>Seguidores Inicial</label>
-              <input type="number" className={inputClass} value={form.seguidores_inicial} onChange={(e) => handleChange('seguidores_inicial', Number(e.target.value))} />
-            </div>
-            <div>
-              <label className={labelClass}>Seguidores Atual</label>
-              <input type="number" className={inputClass} value={form.seguidores_atual} onChange={(e) => handleChange('seguidores_atual', Number(e.target.value))} />
-            </div>
-            <div>
-              <label className={labelClass}>Posts 7 Dias</label>
-              <input type="number" className={inputClass} value={form.posts} onChange={(e) => handleChange('posts', Number(e.target.value))} />
-            </div>
+          <div>
+            <label className={labelClass}>Data de Entrada</label>
+            <input type="date" className={inputClass} value={form.data_inicio} onChange={(e) => handleChange('data_inicio', e.target.value)} />
           </div>
         </div>
 
