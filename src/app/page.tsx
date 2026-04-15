@@ -21,6 +21,8 @@ export default function Dashboard() {
   const [planoFilter, setPlanoFilter] = useState('')
   const [growthFilter, setGrowthFilter] = useState('')
   const [sort, setSort] = useState('nome')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const { role, turma: userTurma } = useUserRole()
   const isAdmin = role === 'admin'
   const isMentor = role === 'mentor'
@@ -65,6 +67,9 @@ export default function Dashboard() {
       .filter((m) => {
         // Mentor only sees their turma
         if (isMentor && userTurma && m.turma !== userTurma) return false
+        // Date filter on data_inicio
+        if (dateFrom && m.data_inicio < dateFrom) return false
+        if (dateTo && m.data_inicio > dateTo) return false
         const q = search.toLowerCase()
         if (q && !m.nome.toLowerCase().includes(q) && !m.instagram.toLowerCase().includes(q) && !m.nicho.toLowerCase().includes(q)) return false
         if (turmaFilter && m.turma !== turmaFilter) return false
@@ -87,7 +92,7 @@ export default function Dashboard() {
           default: return 0
         }
       })
-  }, [mentorados, search, turmaFilter, planoFilter, growthFilter, sort, isMentor, userTurma])
+  }, [mentorados, search, turmaFilter, planoFilter, growthFilter, sort, isMentor, userTurma, dateFrom, dateTo])
 
   return (
     <div>
@@ -130,12 +135,16 @@ export default function Dashboard() {
         growthFilter={growthFilter}
         sort={sort}
         turmas={turmas}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
         onSearchChange={setSearch}
         onTurmaChange={setTurmaFilter}
         onPlanoChange={setPlanoFilter}
         onGrowthChange={setGrowthFilter}
         onSortChange={setSort}
         onRefresh={fetchMentorados}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
         hideTurmaFilter={isMentor}
       />
 
