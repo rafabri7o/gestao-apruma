@@ -17,6 +17,8 @@ export type Mentorado = {
   seguidores_atual: number
   posts: number
   avatar: string | null
+  status: string
+  status_at: string | null
   created_at: string
   updated_at: string
 }

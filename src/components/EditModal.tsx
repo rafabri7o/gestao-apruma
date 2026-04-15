@@ -164,20 +164,73 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete, userRo
               />
             </div>
           )}
+
+          {/* Status indicator */}
+          {mentorado.status !== 'ativo' && (
+            <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium ${
+              mentorado.status === 'cancelou' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+            }`}>
+              <span>{mentorado.status === 'cancelou' ? '❌' : '⏸️'}</span>
+              {mentorado.status === 'cancelou' ? 'Cancelou' : 'Pausou'}
+              {mentorado.status_at && (
+                <span className="text-xs opacity-70">
+                  em {new Date(mentorado.status_at).toLocaleDateString('pt-BR')}
+                </span>
+              )}
+              {isAdmin && (
+                <button
+                  onClick={async () => {
+                    await supabase.from('mentorados').update({ status: 'ativo', status_at: null }).eq('id', mentorado.id)
+                    alert('Status reativado!')
+                    onSave()
+                  }}
+                  className="ml-auto text-xs underline hover:no-underline"
+                >
+                  Reativar
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Actions */}
         <div className="flex items-center justify-between p-6 border-t border-gray-100">
-          {isAdmin ? (
-            <button
-              onClick={handleDelete}
-              className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-            >
-              🗑️ Excluir
-            </button>
-          ) : (
-            <div />
-          )}
+          <div className="flex gap-2">
+            {isAdmin && (
+              <button
+                onClick={handleDelete}
+                className="px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+              >
+                🗑️ Excluir
+              </button>
+            )}
+            {isAdmin && mentorado.status === 'ativo' && (
+              <>
+                <button
+                  onClick={async () => {
+                    if (!confirm('Marcar como CANCELOU?')) return
+                    await supabase.from('mentorados').update({ status: 'cancelou', status_at: new Date().toISOString() }).eq('id', mentorado.id)
+                    alert('Marcado como cancelou')
+                    onSave()
+                  }}
+                  className="px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-red-200"
+                >
+                  ❌ Cancelou
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm('Marcar como PAUSOU?')) return
+                    await supabase.from('mentorados').update({ status: 'pausou', status_at: new Date().toISOString() }).eq('id', mentorado.id)
+                    alert('Marcado como pausou')
+                    onSave()
+                  }}
+                  className="px-3 py-2 text-sm font-medium text-amber-600 hover:bg-amber-50 rounded-xl transition-colors border border-amber-200"
+                >
+                  ⏸️ Pausou
+                </button>
+              </>
+            )}
+          </div>
           <div className="flex gap-3">
             <button
               onClick={onClose}
