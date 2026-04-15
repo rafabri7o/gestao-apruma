@@ -16,6 +16,12 @@ type Level = {
   iconBg: string
 }
 
+type Abordagem = {
+  mentorado_id: string
+  box_index: number
+  marked_at: string
+}
+
 const levels: Level[] = [
   {
     key: 'atencao-maxima',
@@ -52,6 +58,8 @@ const levels: Level[] = [
   },
 ]
 
+const TOTAL_BOXES = 10
+
 function getDaysInMentoria(dataInicio: string): number {
   const inicio = new Date(dataInicio)
   const agora = new Date()
@@ -69,9 +77,8 @@ function classifyMentorados(mentorados: Mentorado[]) {
   for (const m of mentorados) {
     const dias = getDaysInMentoria(m.data_inicio)
     const gained = m.seguidores_atual - m.seguidores_inicial
-    const postsPerWeek = m.posts // posts field = posts last 7 days
+    const postsPerWeek = m.posts
 
-    // Atenção Máxima: 90+ dias, <10K ganhos, postando >=5/semana
     if (dias >= 90 && gained < 10000 && postsPerWeek >= 5) {
       atencaoMaxima.push(m)
       atencaoMaximaIds.add(m.id)
@@ -84,7 +91,6 @@ function classifyMentorados(mentorados: Mentorado[]) {
     const gained = m.seguidores_atual - m.seguidores_inicial
     const postsPerWeek = m.posts
 
-    // Precisa de Ajuda: 90+ dias, <30K ganhos, postando >=5/semana
     if (dias >= 90 && gained < 30000 && postsPerWeek >= 5) {
       precisaAjuda.push(m)
       precisaAjudaIds.add(m.id)
@@ -96,7 +102,6 @@ function classifyMentorados(mentorados: Mentorado[]) {
     const dias = getDaysInMentoria(m.data_inicio)
     const gained = m.seguidores_atual - m.seguidores_inicial
 
-    // Fique de Olho: 60+ dias, <10K ganhos, postando >=5/semana
     if (dias >= 60 && gained < 10000 && m.posts >= 5) {
       fiqueDeOlho.push(m)
     }
@@ -105,54 +110,130 @@ function classifyMentorados(mentorados: Mentorado[]) {
   return { 'atencao-maxima': atencaoMaxima, 'precisa-ajuda': precisaAjuda, 'fique-de-olho': fiqueDeOlho }
 }
 
-function MentoradoCard({ m, level }: { m: Mentorado; level: Level }) {
+function AbordagemBoxes({
+  mentoradoId,
+  abordagens,
+  onToggle,
+}: {
+  mentoradoId: string
+  abordagens: Abordagem[]
+  onToggle: (mentoradoId: string, boxIndex: number) => void
+}) {
+  const markedByIndex = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const a of abordagens) {
+      if (a.mentorado_id === mentoradoId) {
+        map.set(a.box_index, a.marked_at)
+      }
+    }
+    return map
+  }, [abordagens, mentoradoId])
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {Array.from({ length: TOTAL_BOXES }, (_, i) => {
+        const markedAt = markedByIndex.get(i)
+        const isMarked = !!markedAt
+        const formattedDate = markedAt
+          ? new Date(markedAt).toLocaleString('pt-BR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : ''
+
+        return (
+          <div key={i} className="relative group">
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggle(mentoradoId, i) }}
+              className={`w-6 h-6 rounded border-2 transition-all flex items-center justify-center text-xs ${
+                isMarked
+                  ? 'bg-brand-600 border-brand-600 text-white'
+                  : 'bg-white border-gray-300 hover:border-brand-400'
+              }`}
+            >
+              {isMarked && '✓'}
+            </button>
+            {isMarked && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                {formattedDate}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function MentoradoCard({
+  m,
+  level,
+  abordagens,
+  onToggle,
+}: {
+  m: Mentorado
+  level: Level
+  abordagens: Abordagem[]
+  onToggle: (mentoradoId: string, boxIndex: number) => void
+}) {
   const dias = getDaysInMentoria(m.data_inicio)
   const gained = m.seguidores_atual - m.seguidores_inicial
 
   return (
-    <div className={`flex items-center gap-4 p-4 rounded-xl border ${level.borderColor} ${level.bgColor} transition-all hover:shadow-sm`}>
-      <div className="w-12 h-12 rounded-full bg-white overflow-hidden flex-shrink-0 shadow-sm">
-        {m.avatar && m.avatar.includes('supabase') ? (
-          <img
-            src={m.avatar}
-            alt={m.nome}
-            className="w-full h-full object-cover"
-            onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=96` }}
-          />
-        ) : (
-          <img
-            src={m.instagram ? `/api/avatar/${m.instagram}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=96`}
-            alt={m.nome}
-            className="w-full h-full object-cover"
-            onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=96` }}
-          />
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold text-gray-900 truncate">{m.nome}</div>
-        <div className="text-xs text-gray-500">@{m.instagram}</div>
-      </div>
-
-      <div className="flex items-center gap-3 text-xs flex-shrink-0">
-        <div className="text-center">
-          <div className="text-gray-400">Dias</div>
-          <div className="font-bold text-gray-700">{dias}</div>
+    <div className={`p-4 rounded-xl border ${level.borderColor} ${level.bgColor} transition-all hover:shadow-sm`}>
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-white overflow-hidden flex-shrink-0 shadow-sm">
+          {m.avatar && m.avatar.includes('supabase') ? (
+            <img
+              src={m.avatar}
+              alt={m.nome}
+              className="w-full h-full object-cover"
+              onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=96` }}
+            />
+          ) : (
+            <img
+              src={m.instagram ? `/api/avatar/${m.instagram}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=96`}
+              alt={m.nome}
+              className="w-full h-full object-cover"
+              onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=96` }}
+            />
+          )}
         </div>
-        <div className="text-center">
-          <div className="text-gray-400">Ganhou</div>
-          <div className={`font-bold ${gained >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-            {gained >= 0 ? '+' : ''}{formatNumber(gained)}
+
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-gray-900 truncate">{m.nome}</div>
+          <div className="text-xs text-gray-500">@{m.instagram}</div>
+        </div>
+
+        <div className="flex items-center gap-3 text-xs flex-shrink-0">
+          <div className="text-center">
+            <div className="text-gray-400">Dias</div>
+            <div className="font-bold text-gray-700">{dias}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-gray-400">Ganhou</div>
+            <div className={`font-bold ${gained >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+              {gained >= 0 ? '+' : ''}{formatNumber(gained)}
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-gray-400">Posts/sem</div>
+            <div className="font-bold text-gray-700">{m.posts}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-gray-400">Turma</div>
+            <div className="font-bold text-gray-700 truncate max-w-[80px]">{m.turma}</div>
           </div>
         </div>
-        <div className="text-center">
-          <div className="text-gray-400">Posts/sem</div>
-          <div className="font-bold text-gray-700">{m.posts}</div>
-        </div>
-        <div className="text-center">
-          <div className="text-gray-400">Turma</div>
-          <div className="font-bold text-gray-700 truncate max-w-[80px]">{m.turma}</div>
-        </div>
+      </div>
+
+      <div className="mt-3 pt-3 border-t border-black/5 flex items-center gap-3">
+        <span className="text-xs text-gray-500 flex-shrink-0">Abordagens:</span>
+        <AbordagemBoxes mentoradoId={m.id} abordagens={abordagens} onToggle={onToggle} />
       </div>
     </div>
   )
@@ -160,19 +241,56 @@ function MentoradoCard({ m, level }: { m: Mentorado; level: Level }) {
 
 export default function SosMentoresPage() {
   const [mentorados, setMentorados] = useState<Mentorado[]>([])
+  const [abordagens, setAbordagens] = useState<Abordagem[]>([])
   const [loading, setLoading] = useState(true)
   const [turmaFilter, setTurmaFilter] = useState('')
 
-  const fetchMentorados = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase.from('mentorados').select('*').order('nome')
-    setMentorados(data || [])
+    const [mentRes, abrRes] = await Promise.all([
+      supabase.from('mentorados').select('*').order('nome'),
+      supabase.from('sos_abordagens').select('mentorado_id, box_index, marked_at'),
+    ])
+    setMentorados(mentRes.data || [])
+    setAbordagens(abrRes.data || [])
     setLoading(false)
   }, [])
 
   useEffect(() => {
-    fetchMentorados()
-  }, [fetchMentorados])
+    fetchData()
+  }, [fetchData])
+
+  const handleToggle = useCallback(async (mentoradoId: string, boxIndex: number) => {
+    const existing = abordagens.find(
+      (a) => a.mentorado_id === mentoradoId && a.box_index === boxIndex
+    )
+
+    if (existing) {
+      // Unmark
+      await supabase
+        .from('sos_abordagens')
+        .delete()
+        .eq('mentorado_id', mentoradoId)
+        .eq('box_index', boxIndex)
+
+      setAbordagens((prev) =>
+        prev.filter((a) => !(a.mentorado_id === mentoradoId && a.box_index === boxIndex))
+      )
+    } else {
+      // Mark
+      const now = new Date().toISOString()
+      const { error } = await supabase
+        .from('sos_abordagens')
+        .insert({ mentorado_id: mentoradoId, box_index: boxIndex, marked_at: now })
+
+      if (!error) {
+        setAbordagens((prev) => [
+          ...prev,
+          { mentorado_id: mentoradoId, box_index: boxIndex, marked_at: now },
+        ])
+      }
+    }
+  }, [abordagens])
 
   const turmas = useMemo(() => [...new Set(mentorados.map((m) => m.turma))].sort(), [mentorados])
 
@@ -245,7 +363,13 @@ export default function SosMentoresPage() {
                 ) : (
                   <div className="space-y-2">
                     {list.map((m) => (
-                      <MentoradoCard key={m.id} m={m} level={level} />
+                      <MentoradoCard
+                        key={m.id}
+                        m={m}
+                        level={level}
+                        abordagens={abordagens}
+                        onToggle={handleToggle}
+                      />
                     ))}
                   </div>
                 )}
