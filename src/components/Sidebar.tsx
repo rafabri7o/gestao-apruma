@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -14,10 +14,60 @@ const allNavItems = [
   { label: 'Toque do Rafa', href: '/toque-do-rafa', icon: '🎙️', roles: ['admin', 'gerente', 'mentor'] as UserRole[] },
 ]
 
+function useUnreadToques(role: UserRole, turma: string | null) {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    const fetch = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Get all toques
+      const { data: toques } = await supabase
+        .from('toques')
+        .select('id, mentorado_id')
+
+      if (!toques || toques.length === 0) return
+
+      // Filter by turma for mentors
+      let filteredToques = toques
+      if (role === 'mentor' && turma) {
+        const { data: mentorados } = await supabase
+          .from('mentorados')
+          .select('id, turma')
+        const turmaIds = new Set(
+          (mentorados || []).filter((m) => m.turma === turma).map((m) => m.id)
+        )
+        filteredToques = toques.filter((t) => turmaIds.has(t.mentorado_id))
+      }
+
+      if (filteredToques.length === 0) return
+
+      // Get reads for this user
+      const { data: reads } = await supabase
+        .from('toque_reads')
+        .select('toque_id')
+        .eq('user_id', user.id)
+
+      const readIds = new Set((reads || []).map((r) => r.toque_id))
+      const unread = filteredToques.filter((t) => !readIds.has(t.id)).length
+      setCount(unread)
+    }
+
+    fetch()
+    // Refresh every 30 seconds
+    const interval = setInterval(fetch, 30000)
+    return () => clearInterval(interval)
+  }, [role, turma])
+
+  return count
+}
+
 export default function Sidebar() {
   const pathname = usePathname()
-  const { role, email, name, loading } = useUserRole()
+  const { role, email, name, turma, loading } = useUserRole()
   const [open, setOpen] = useState(false)
+  const unreadToques = useUnreadToques(role, turma)
 
   const navItems = allNavItems.filter((item) => item.roles.includes(role))
   const userName = name || email
@@ -30,6 +80,11 @@ export default function Sidebar() {
         className="fixed top-4 left-4 z-50 lg:hidden bg-white border border-gray-200 rounded-xl p-2 shadow-sm"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        {unreadToques > 0 && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+            {unreadToques > 9 ? '9+' : unreadToques}
+          </span>
+        )}
       </button>
 
       {/* Overlay */}
@@ -58,12 +113,13 @@ export default function Sidebar() {
         <nav className="flex-1 px-4 space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href
+            const showBadge = item.href === '/toque-do-rafa' && unreadToques > 0
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all relative ${
                   isActive
                     ? 'bg-brand-50 text-brand-700 border border-brand-200'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -71,6 +127,11 @@ export default function Sidebar() {
               >
                 <span className="text-lg">{item.icon}</span>
                 {item.label}
+                {showBadge && (
+                  <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                    {unreadToques > 9 ? '9+' : unreadToques}
+                  </span>
+                )}
               </Link>
             )
           })}
