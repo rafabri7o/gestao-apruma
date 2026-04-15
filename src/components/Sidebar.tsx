@@ -184,7 +184,7 @@ export default function Sidebar() {
                 <span className="text-lg">{item.icon}</span>
                 {item.label}
                 {badgeCount > 0 && (
-                  <span className={`ml-auto text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${csBadge ? 'bg-amber-500' : 'bg-red-500'}`}>
+                  <span className={`ml-auto text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${'bg-red-500'}`}>
                     {badgeCount}
                   </span>
                 )}
