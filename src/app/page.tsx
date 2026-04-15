@@ -126,6 +126,8 @@ export default function Dashboard() {
         )}
       </div>
 
+      <StatsCards mentorados={filtered} />
+
       <Filters
         search={search}
         turmaFilter={turmaFilter}
