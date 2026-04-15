@@ -18,6 +18,9 @@ function useUnreadToques(role: UserRole, turma: string | null) {
   const [count, setCount] = useState(0)
 
   useEffect(() => {
+    // Admin sends the toques, no notifications for them
+    if (role === 'admin') return
+
     const fetch = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
