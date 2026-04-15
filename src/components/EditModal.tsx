@@ -26,6 +26,7 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete, userRo
 
   const isAdmin = userRole === 'admin'
   const canEditSeguidores = isAdmin
+  const instagramChanged = form.instagram.replace('@', '').trim().toLowerCase() !== mentorado.instagram.replace('@', '').trim().toLowerCase()
 
   const handleChange = (field: string, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -33,9 +34,11 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete, userRo
 
   const handleSave = async () => {
     setSaving(true)
+
+    const cleanIg = form.instagram.replace('@', '').trim()
     const updateData: Record<string, unknown> = {
       nome: form.nome,
-      instagram: form.instagram,
+      instagram: cleanIg,
       nicho: form.nicho,
       turma: form.turma,
       plano: form.plano,
@@ -50,12 +53,35 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete, userRo
       .from('mentorados')
       .update(updateData)
       .eq('id', mentorado.id)
-    setSaving(false)
+
     if (error) {
+      setSaving(false)
       alert('Erro ao salvar: ' + error.message)
       return
     }
-    alert('Mentorado atualizado!')
+
+    // If instagram changed, fetch new profile data (followers, photo)
+    if (instagramChanged) {
+      try {
+        const res = await fetch('/api/update-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mentoradoId: mentorado.id, instagram: cleanIg }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          alert(`Mentorado atualizado! Seguidores: ${data.follower_count?.toLocaleString('pt-BR') || '-'}`)
+        } else {
+          alert('Mentorado salvo, mas não foi possível buscar dados do novo Instagram.')
+        }
+      } catch {
+        alert('Mentorado salvo, mas erro ao buscar dados do Instagram.')
+      }
+    } else {
+      alert('Mentorado atualizado!')
+    }
+
+    setSaving(false)
     onSave()
   }
 
@@ -97,6 +123,9 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete, userRo
           <div>
             <label className={labelClass}>Instagram</label>
             <input className={inputClass} value={form.instagram} onChange={(e) => handleChange('instagram', e.target.value)} />
+            {instagramChanged && (
+              <p className="text-xs text-brand-600 mt-1">Ao salvar, os dados do Instagram serão atualizados automaticamente</p>
+            )}
           </div>
           <div>
             <label className={labelClass}>Nicho</label>
@@ -161,7 +190,7 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete, userRo
               disabled={saving}
               className="px-6 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-colors disabled:opacity-50"
             >
-              {saving ? 'Salvando...' : '💾 Salvar'}
+              {saving ? (instagramChanged ? 'Buscando Instagram...' : 'Salvando...') : '💾 Salvar'}
             </button>
           </div>
         </div>
