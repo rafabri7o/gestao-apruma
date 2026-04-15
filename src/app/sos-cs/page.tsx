@@ -20,6 +20,8 @@ type Abordagem = {
   mentorado_id: string
   box_index: number
   marked_at: string
+  marked_by_email: string | null
+  marked_by_name: string | null
 }
 
 const levels: Level[] = [
@@ -81,10 +83,10 @@ function AbordagemBoxes({
   onToggle: (mentoradoId: string, boxIndex: number) => void
 }) {
   const markedByIndex = useMemo(() => {
-    const map = new Map<number, string>()
+    const map = new Map<number, Abordagem>()
     for (const a of abordagens) {
       if (a.mentorado_id === mentoradoId) {
-        map.set(a.box_index, a.marked_at)
+        map.set(a.box_index, a)
       }
     }
     return map
@@ -93,10 +95,10 @@ function AbordagemBoxes({
   return (
     <div className="flex items-center gap-1.5">
       {Array.from({ length: TOTAL_BOXES }, (_, i) => {
-        const markedAt = markedByIndex.get(i)
-        const isMarked = !!markedAt
-        const formattedDate = markedAt
-          ? new Date(markedAt).toLocaleString('pt-BR', {
+        const abordagem = markedByIndex.get(i)
+        const isMarked = !!abordagem
+        const formattedDate = abordagem
+          ? new Date(abordagem.marked_at).toLocaleString('pt-BR', {
               day: '2-digit',
               month: '2-digit',
               year: 'numeric',
@@ -104,6 +106,7 @@ function AbordagemBoxes({
               minute: '2-digit',
             })
           : ''
+        const markedByLabel = abordagem?.marked_by_name || abordagem?.marked_by_email || ''
 
         return (
           <div key={i} className="relative group">
@@ -119,7 +122,8 @@ function AbordagemBoxes({
             </button>
             {isMarked && (
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                {formattedDate}
+                <div>{formattedDate}</div>
+                {markedByLabel && <div className="text-gray-300">por {markedByLabel}</div>}
                 <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
               </div>
             )}
@@ -204,15 +208,23 @@ export default function SosCsPage() {
   const [abordagens, setAbordagens] = useState<Abordagem[]>([])
   const [loading, setLoading] = useState(true)
   const [turmaFilter, setTurmaFilter] = useState('')
+  const [currentUser, setCurrentUser] = useState<{ email: string; name: string }>({ email: '', name: '' })
 
   const fetchData = useCallback(async () => {
     setLoading(true)
-    const [mentRes, abrRes] = await Promise.all([
+    const [mentRes, abrRes, userRes] = await Promise.all([
       supabase.from('mentorados').select('*').order('nome'),
-      supabase.from('sos_abordagens').select('mentorado_id, box_index, marked_at'),
+      supabase.from('sos_abordagens').select('mentorado_id, box_index, marked_at, marked_by_email, marked_by_name'),
+      supabase.auth.getUser(),
     ])
     setMentorados(mentRes.data || [])
     setAbordagens(abrRes.data || [])
+    if (userRes.data.user) {
+      setCurrentUser({
+        email: userRes.data.user.email || '',
+        name: userRes.data.user.user_metadata?.display_name || '',
+      })
+    }
     setLoading(false)
   }, [])
 
@@ -239,16 +251,28 @@ export default function SosCsPage() {
       const now = new Date().toISOString()
       const { error } = await supabase
         .from('sos_abordagens')
-        .insert({ mentorado_id: mentoradoId, box_index: boxIndex, marked_at: now })
+        .insert({
+          mentorado_id: mentoradoId,
+          box_index: boxIndex,
+          marked_at: now,
+          marked_by_email: currentUser.email,
+          marked_by_name: currentUser.name,
+        })
 
       if (!error) {
         setAbordagens((prev) => [
           ...prev,
-          { mentorado_id: mentoradoId, box_index: boxIndex, marked_at: now },
+          {
+            mentorado_id: mentoradoId,
+            box_index: boxIndex,
+            marked_at: now,
+            marked_by_email: currentUser.email,
+            marked_by_name: currentUser.name,
+          },
         ])
       }
     }
-  }, [abordagens])
+  }, [abordagens, currentUser])
 
   const turmas = useMemo(() => [...new Set(mentorados.map((m) => m.turma))].sort(), [mentorados])
 
