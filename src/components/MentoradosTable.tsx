@@ -5,7 +5,7 @@ import { formatNumber, calcGrowth, calcTempoRestante } from '@/lib/utils'
 
 type Props = {
   mentorados: Mentorado[]
-  onEdit: (m: Mentorado) => void
+  onEdit?: (m: Mentorado) => void
   lastUpdate?: string | null
 }
 
@@ -34,7 +34,7 @@ export default function MentoradosTable({ mentorados, onEdit, lastUpdate }: Prop
               <th className="px-4 py-4 font-medium">Posts 7 Dias</th>
               <th className="px-4 py-4 font-medium">Plano</th>
               <th className="px-4 py-4 font-medium">Tempo Restante</th>
-              <th className="px-4 py-4 font-medium">Ações</th>
+              {onEdit && <th className="px-4 py-4 font-medium">Ações</th>}
             </tr>
           </thead>
           <tbody>
@@ -44,8 +44,8 @@ export default function MentoradosTable({ mentorados, onEdit, lastUpdate }: Prop
               return (
                 <tr
                   key={m.id}
-                  onClick={() => onEdit(m)}
-                  className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => onEdit?.(m)}
+                  className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${onEdit ? 'cursor-pointer' : ''}`}
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -98,14 +98,16 @@ export default function MentoradosTable({ mentorados, onEdit, lastUpdate }: Prop
                     </span>
                   </td>
                   <td className="px-4 py-4 text-gray-600 text-xs">{tempo}</td>
-                  <td className="px-4 py-4">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onEdit(m) }}
-                      className="text-brand-600 hover:text-brand-800 text-sm font-medium"
-                    >
-                      ✏️
-                    </button>
-                  </td>
+                  {onEdit && (
+                    <td className="px-4 py-4">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onEdit(m) }}
+                        className="text-brand-600 hover:text-brand-800 text-sm font-medium"
+                      >
+                        ✏️
+                      </button>
+                    </td>
+                  )}
                 </tr>
               )
             })}

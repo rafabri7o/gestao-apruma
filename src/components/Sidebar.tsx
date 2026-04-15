@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useUserRole, type UserRole } from '@/lib/useUserRole'
 
 const allNavItems = [
-  { label: 'Dashboard', href: '/', icon: '📊', roles: ['admin', 'gerente'] as UserRole[] },
+  { label: 'Dashboard', href: '/', icon: '📊', roles: ['admin', 'gerente', 'mentor'] as UserRole[] },
   { label: 'Cadastrar', href: '/cadastrar', icon: '➕', roles: ['admin', 'gerente'] as UserRole[] },
   { label: 'SOS Mentores', href: '/sos-mentores', icon: '🆘', roles: ['admin', 'gerente', 'mentor'] as UserRole[] },
   { label: 'SOS CS', href: '/sos-cs', icon: '⚠️', roles: ['admin', 'gerente'] as UserRole[] },

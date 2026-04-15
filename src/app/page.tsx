@@ -21,8 +21,9 @@ export default function Dashboard() {
   const [planoFilter, setPlanoFilter] = useState('')
   const [growthFilter, setGrowthFilter] = useState('')
   const [sort, setSort] = useState('nome')
-  const { role } = useUserRole()
+  const { role, turma: userTurma } = useUserRole()
   const isAdmin = role === 'admin'
+  const isMentor = role === 'mentor'
 
   const fetchMentorados = useCallback(async () => {
     setLoading(true)
@@ -62,6 +63,8 @@ export default function Dashboard() {
   const filtered = useMemo(() => {
     return mentorados
       .filter((m) => {
+        // Mentor only sees their turma
+        if (isMentor && userTurma && m.turma !== userTurma) return false
         const q = search.toLowerCase()
         if (q && !m.nome.toLowerCase().includes(q) && !m.instagram.toLowerCase().includes(q) && !m.nicho.toLowerCase().includes(q)) return false
         if (turmaFilter && m.turma !== turmaFilter) return false
@@ -84,7 +87,7 @@ export default function Dashboard() {
           default: return 0
         }
       })
-  }, [mentorados, search, turmaFilter, planoFilter, growthFilter, sort])
+  }, [mentorados, search, turmaFilter, planoFilter, growthFilter, sort, isMentor, userTurma])
 
   return (
     <div>
@@ -143,12 +146,12 @@ export default function Dashboard() {
       ) : (
         <MentoradosTable
           mentorados={filtered}
-          onEdit={setEditing}
+          onEdit={isMentor ? undefined : setEditing}
           lastUpdate={lastUpdate}
         />
       )}
 
-      {editing && (
+      {!isMentor && editing && (
         <EditModal
           mentorado={editing}
           onClose={() => setEditing(null)}
