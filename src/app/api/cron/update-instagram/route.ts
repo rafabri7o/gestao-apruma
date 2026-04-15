@@ -35,7 +35,8 @@ export async function GET(request: Request) {
       const profiles = await fetchMultipleProfiles(usernames)
 
       for (const m of batch) {
-        const profile = profiles.get(m.instagram.toLowerCase())
+        const cleanIg = m.instagram.replace('@', '').trim().toLowerCase()
+        const profile = profiles.get(cleanIg)
         if (!profile) continue
 
         try {

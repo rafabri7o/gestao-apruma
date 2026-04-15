@@ -28,6 +28,9 @@ export async function fetchInstagramProfile(username: string): Promise<Instagram
 
     const profile = data[0]
 
+    // Skip if API returned no real data
+    if (profile.followersCount == null && profile.postsCount == null) return null
+
     // Count posts from last 7 days
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
     const latestPosts = profile.latestPosts || []
@@ -42,9 +45,9 @@ export async function fetchInstagramProfile(username: string): Promise<Instagram
       username: profile.username || cleanUsername,
       full_name: profile.fullName || '',
       profile_pic_url: profile.profilePicUrlHD || profile.profilePicUrl || '',
-      follower_count: profile.followersCount || 0,
-      following_count: profile.followsCount || 0,
-      media_count: profile.postsCount || 0,
+      follower_count: profile.followersCount ?? 0,
+      following_count: profile.followsCount ?? 0,
+      media_count: profile.postsCount ?? 0,
       posts_last_7d: postsLast7d,
       biography: profile.biography || '',
     }
@@ -76,6 +79,9 @@ export async function fetchMultipleProfiles(usernames: string[]): Promise<Map<st
 
     for (const profile of data) {
       if (!profile.username) continue
+      // Skip profiles where the API returned no real data
+      if (profile.followersCount == null && profile.postsCount == null) continue
+
       const latestPosts = profile.latestPosts || []
       const postsLast7d = latestPosts.filter(
         (p: { timestamp?: string }) => {
@@ -88,9 +94,9 @@ export async function fetchMultipleProfiles(usernames: string[]): Promise<Map<st
         username: profile.username,
         full_name: profile.fullName || '',
         profile_pic_url: profile.profilePicUrlHD || profile.profilePicUrl || '',
-        follower_count: profile.followersCount || 0,
-        following_count: profile.followsCount || 0,
-        media_count: profile.postsCount || 0,
+        follower_count: profile.followersCount ?? 0,
+        following_count: profile.followsCount ?? 0,
+        media_count: profile.postsCount ?? 0,
         posts_last_7d: postsLast7d,
         biography: profile.biography || '',
       })

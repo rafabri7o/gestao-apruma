@@ -31,7 +31,8 @@ export async function POST() {
       const profiles = await fetchMultipleProfiles(usernames)
 
       for (const m of batch) {
-        const profile = profiles.get(m.instagram.toLowerCase())
+        const cleanIg = m.instagram.replace('@', '').trim().toLowerCase()
+        const profile = profiles.get(cleanIg)
         if (!profile) {
           results.push({ instagram: m.instagram, posts_7d: 0, followers: 0, status: 'not_found' })
           continue
