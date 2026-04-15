@@ -24,11 +24,11 @@ export default function StatsCards({ mentorados }: Props) {
   ]
 
   return (
-    <div className="grid grid-cols-5 gap-6 mb-8">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 mb-6 lg:mb-8">
       {cards.map((card) => (
         <div
           key={card.label}
-          className="bg-white rounded-2xl p-6 card-hover shadow-sm border border-gray-100 animate-fade-in"
+          className="bg-white rounded-2xl p-4 lg:p-6 card-hover shadow-sm border border-gray-100 animate-fade-in"
         >
           <div className="flex items-center justify-between mb-4">
             <span className="text-2xl">{card.icon}</span>
@@ -43,8 +43,8 @@ export default function StatsCards({ mentorados }: Props) {
               </span>
             )}
           </div>
-          <div className="text-3xl font-bold text-gray-900">{card.value}</div>
-          <div className="text-sm text-gray-500 mt-1">{card.label}</div>
+          <div className="text-2xl lg:text-3xl font-bold text-gray-900">{card.value}</div>
+          <div className="text-xs lg:text-sm text-gray-500 mt-1">{card.label}</div>
         </div>
       ))}
     </div>

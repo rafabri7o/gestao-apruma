@@ -157,7 +157,7 @@ export default function CadastrarPage() {
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className={labelClass}>Turma</label>
             <select className={inputClass} value={form.turma} onChange={(e) => handleChange('turma', e.target.value)}>

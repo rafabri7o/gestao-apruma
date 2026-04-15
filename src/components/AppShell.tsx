@@ -29,7 +29,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <AuthGuard>
       <div className="flex min-h-screen">
         <Sidebar />
-        <main className="ml-64 flex-1 p-8">
+        <main className="lg:ml-64 flex-1 p-4 pt-16 lg:p-8 lg:pt-8">
           {children}
         </main>
       </div>

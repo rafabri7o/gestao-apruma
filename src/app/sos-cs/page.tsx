@@ -96,7 +96,7 @@ function AbordagemBoxes({
   }, [abordagens, mentoradoId, source])
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1 sm:gap-1.5">
       {Array.from({ length: TOTAL_BOXES }, (_, i) => {
         const abordagem = markedByIndex.get(i)
         const isMarked = !!abordagem
@@ -115,7 +115,7 @@ function AbordagemBoxes({
           <div key={i} className="relative group">
             <button
               onClick={(e) => { e.stopPropagation(); onToggle(mentoradoId, i, source) }}
-              className={`w-6 h-6 rounded border-2 transition-all flex items-center justify-center text-xs ${
+              className={`w-5 h-5 sm:w-6 sm:h-6 rounded border-2 transition-all flex items-center justify-center text-[10px] sm:text-xs ${
                 isMarked
                   ? 'bg-brand-600 border-brand-600 text-white'
                   : 'bg-white border-gray-300 hover:border-brand-400'
@@ -151,9 +151,9 @@ function MentoradoCard({
   const gained = m.seguidores_atual - m.seguidores_inicial
 
   return (
-    <div className={`p-4 rounded-xl border ${level.borderColor} ${level.bgColor} transition-all hover:shadow-sm`}>
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-white overflow-hidden flex-shrink-0 shadow-sm">
+    <div className={`p-3 sm:p-4 rounded-xl border ${level.borderColor} ${level.bgColor} transition-all hover:shadow-sm`}>
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white overflow-hidden flex-shrink-0 shadow-sm">
           {m.avatar && m.avatar.includes('supabase') ? (
             <img
               src={m.avatar}
@@ -172,39 +172,39 @@ function MentoradoCard({
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-gray-900 truncate">{m.nome}</div>
+          <div className="font-semibold text-gray-900 truncate text-sm sm:text-base">{m.nome}</div>
           <div className="text-xs text-gray-500">@{m.instagram}</div>
         </div>
+      </div>
 
-        <div className="flex items-center gap-3 text-xs flex-shrink-0">
-          <div className="text-center">
-            <div className="text-gray-400">Posts/sem</div>
-            <div className={`font-bold ${m.posts === 0 ? 'text-red-600' : 'text-amber-600'}`}>{m.posts}</div>
+      <div className="flex items-center gap-3 sm:gap-4 text-xs mt-3 pt-3 border-t border-black/5">
+        <div className="text-center flex-1">
+          <div className="text-gray-400">Posts/sem</div>
+          <div className={`font-bold ${m.posts === 0 ? 'text-red-600' : 'text-amber-600'}`}>{m.posts}</div>
+        </div>
+        <div className="text-center flex-1">
+          <div className="text-gray-400">Seguidores</div>
+          <div className="font-bold text-gray-700">{formatNumber(m.seguidores_atual)}</div>
+        </div>
+        <div className="text-center flex-1">
+          <div className="text-gray-400">Ganhou</div>
+          <div className={`font-bold ${gained >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+            {gained >= 0 ? '+' : ''}{formatNumber(gained)}
           </div>
-          <div className="text-center">
-            <div className="text-gray-400">Seguidores</div>
-            <div className="font-bold text-gray-700">{formatNumber(m.seguidores_atual)}</div>
-          </div>
-          <div className="text-center">
-            <div className="text-gray-400">Ganhou</div>
-            <div className={`font-bold ${gained >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-              {gained >= 0 ? '+' : ''}{formatNumber(gained)}
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-gray-400">Turma</div>
-            <div className="font-bold text-gray-700 truncate max-w-[80px]">{m.turma}</div>
-          </div>
+        </div>
+        <div className="text-center flex-1">
+          <div className="text-gray-400">Turma</div>
+          <div className="font-bold text-gray-700 truncate">{m.turma}</div>
         </div>
       </div>
 
       <div className="mt-3 pt-3 border-t border-black/5 space-y-2">
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-500 flex-shrink-0 w-24">Abordagem CS:</span>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="text-xs text-gray-500 flex-shrink-0 w-20 sm:w-24">Abordagem CS:</span>
           <AbordagemBoxes mentoradoId={m.id} abordagens={abordagens} onToggle={onToggle} source="cs" />
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-500 flex-shrink-0 w-24">Abordagem Rafa:</span>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="text-xs text-gray-500 flex-shrink-0 w-20 sm:w-24">Abordagem Rafa:</span>
           <AbordagemBoxes mentoradoId={m.id} abordagens={abordagens} onToggle={onToggle} source="rafa" />
         </div>
       </div>

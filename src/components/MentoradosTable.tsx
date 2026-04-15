@@ -23,7 +23,7 @@ export default function MentoradosTable({ mentorados, onEdit, lastUpdate }: Prop
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 animate-fade-in">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[800px]">
           <thead>
             <tr className="text-left text-gray-500 border-b border-gray-100">
               <th className="px-6 py-4 font-medium">Mentorado</th>

@@ -24,8 +24,8 @@ export default function Filters({
   const selectClass = 'px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-300'
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 animate-fade-in">
-      <div className="flex items-center gap-4 flex-wrap">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 lg:p-6 mb-4 lg:mb-6 animate-fade-in">
+      <div className="flex items-center gap-3 lg:gap-4 flex-wrap">
         <input
           type="text"
           placeholder="Buscar mentorado..."

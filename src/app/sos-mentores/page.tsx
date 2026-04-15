@@ -108,48 +108,50 @@ function MentoradoCard({ m, level }: { m: Mentorado; level: Level }) {
   const gained = m.seguidores_atual - m.seguidores_inicial
 
   return (
-    <div className={`flex items-center gap-4 p-4 rounded-xl border ${level.borderColor} ${level.bgColor} transition-all hover:shadow-sm`}>
-      <div className="w-12 h-12 rounded-full bg-white overflow-hidden flex-shrink-0 shadow-sm">
-        {m.avatar && m.avatar.includes('supabase') ? (
-          <img
-            src={m.avatar}
-            alt={m.nome}
-            className="w-full h-full object-cover"
-            onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=96` }}
-          />
-        ) : (
-          <img
-            src={m.instagram ? `/api/avatar/${m.instagram}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=96`}
-            alt={m.nome}
-            className="w-full h-full object-cover"
-            onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=96` }}
-          />
-        )}
+    <div className={`p-3 sm:p-4 rounded-xl border ${level.borderColor} ${level.bgColor} transition-all hover:shadow-sm`}>
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white overflow-hidden flex-shrink-0 shadow-sm">
+          {m.avatar && m.avatar.includes('supabase') ? (
+            <img
+              src={m.avatar}
+              alt={m.nome}
+              className="w-full h-full object-cover"
+              onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=96` }}
+            />
+          ) : (
+            <img
+              src={m.instagram ? `/api/avatar/${m.instagram}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=96`}
+              alt={m.nome}
+              className="w-full h-full object-cover"
+              onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=96` }}
+            />
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-gray-900 truncate text-sm sm:text-base">{m.nome}</div>
+          <div className="text-xs text-gray-500">@{m.instagram}</div>
+        </div>
       </div>
 
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold text-gray-900 truncate">{m.nome}</div>
-        <div className="text-xs text-gray-500">@{m.instagram}</div>
-      </div>
-
-      <div className="flex items-center gap-3 text-xs flex-shrink-0">
-        <div className="text-center">
+      <div className="flex items-center gap-3 sm:gap-4 text-xs mt-3 pt-3 border-t border-black/5">
+        <div className="text-center flex-1">
           <div className="text-gray-400">Dias</div>
           <div className="font-bold text-gray-700">{dias}</div>
         </div>
-        <div className="text-center">
+        <div className="text-center flex-1">
           <div className="text-gray-400">Ganhou</div>
           <div className={`font-bold ${gained >= 0 ? 'text-green-600' : 'text-red-500'}`}>
             {gained >= 0 ? '+' : ''}{formatNumber(gained)}
           </div>
         </div>
-        <div className="text-center">
+        <div className="text-center flex-1">
           <div className="text-gray-400">Posts/sem</div>
           <div className="font-bold text-gray-700">{m.posts}</div>
         </div>
-        <div className="text-center">
+        <div className="text-center flex-1">
           <div className="text-gray-400">Turma</div>
-          <div className="font-bold text-gray-700 truncate max-w-[80px]">{m.turma}</div>
+          <div className="font-bold text-gray-700 truncate">{m.turma}</div>
         </div>
       </div>
     </div>
