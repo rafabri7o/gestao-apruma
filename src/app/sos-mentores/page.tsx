@@ -18,14 +18,6 @@ type Level = {
   iconBg: string
 }
 
-type Toque = {
-  id: string
-  mentorado_id: string
-  audio_url: string
-  created_by_name: string | null
-  created_at: string
-}
-
 const levels: Level[] = [
   {
     key: 'atencao-maxima',
@@ -113,22 +105,18 @@ function classifyMentorados(mentorados: Mentorado[]) {
 function MentoradoCard({
   m,
   level,
-  toques,
   isAdmin,
   onAudioRecorded,
   uploading,
 }: {
   m: Mentorado
   level: Level
-  toques: Toque[]
   isAdmin: boolean
   onAudioRecorded: (mentoradoId: string, blob: Blob, extension: string) => void
   uploading: string | null
 }) {
   const dias = getDaysInMentoria(m.data_inicio)
   const gained = m.seguidores_atual - m.seguidores_inicial
-  const mentoradoToques = toques.filter((t) => t.mentorado_id === m.id)
-
   return (
     <div className={`p-3 sm:p-4 rounded-xl border ${level.borderColor} ${level.bgColor} transition-all hover:shadow-sm`}>
       <div className="flex items-center gap-3 sm:gap-4">
@@ -189,41 +177,24 @@ function MentoradoCard({
         </div>
       </div>
 
-      {/* Audio section */}
-      <div className="mt-3 pt-3 border-t border-black/5">
-        {isAdmin && (
-          <div className="mb-2">
-            <AudioRecorder
-              onRecorded={(blob, ext) => onAudioRecorded(m.id, blob, ext)}
-              disabled={uploading === m.id}
-            />
-            {uploading === m.id && (
-              <span className="text-xs text-brand-600 ml-2">Enviando...</span>
-            )}
-          </div>
-        )}
-
-        {mentoradoToques.length > 0 && (
-          <div className="space-y-2">
-            {mentoradoToques.map((t) => (
-              <div key={t.id} className="flex items-center gap-2 bg-white/60 rounded-lg p-2">
-                <audio controls src={t.audio_url} className="h-8 flex-1 min-w-0" preload="none" />
-                <div className="text-[10px] text-gray-400 flex-shrink-0">
-                  <div>{t.created_by_name || 'Rafa'}</div>
-                  <div>{new Date(t.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Audio record button - admin only */}
+      {isAdmin && (
+        <div className="mt-3 pt-3 border-t border-black/5 flex items-center gap-2">
+          <AudioRecorder
+            onRecorded={(blob, ext) => onAudioRecorded(m.id, blob, ext)}
+            disabled={uploading === m.id}
+          />
+          {uploading === m.id && (
+            <span className="text-xs text-brand-600">Enviando...</span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
 export default function SosMentoresPage() {
   const [mentorados, setMentorados] = useState<Mentorado[]>([])
-  const [toques, setToques] = useState<Toque[]>([])
   const [loading, setLoading] = useState(true)
   const [turmaFilter, setTurmaFilter] = useState('')
   const [uploading, setUploading] = useState<string | null>(null)
@@ -233,12 +204,8 @@ export default function SosMentoresPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true)
-    const [mentRes, toqueRes] = await Promise.all([
-      supabase.from('mentorados').select('*').order('nome'),
-      supabase.from('toques').select('id, mentorado_id, audio_url, created_by_name, created_at').order('created_at', { ascending: false }),
-    ])
-    setMentorados(mentRes.data || [])
-    setToques(toqueRes.data || [])
+    const { data } = await supabase.from('mentorados').select('*').order('nome')
+    setMentorados(data || [])
     setLoading(false)
   }, [])
 
@@ -263,7 +230,7 @@ export default function SosMentoresPage() {
 
       const { data: urlData } = supabase.storage.from('audios').getPublicUrl(fileName)
 
-      const { data: toque, error: dbErr } = await supabase
+      const { error: dbErr } = await supabase
         .from('toques')
         .insert({
           mentorado_id: mentoradoId,
@@ -271,13 +238,11 @@ export default function SosMentoresPage() {
           created_by_email: email,
           created_by_name: name || 'Rafa',
         })
-        .select('id, mentorado_id, audio_url, created_by_name, created_at')
-        .single()
 
       if (dbErr) {
         alert('Erro ao salvar toque: ' + dbErr.message)
-      } else if (toque) {
-        setToques((prev) => [toque, ...prev])
+      } else {
+        alert('Toque enviado!')
       }
     } catch {
       alert('Erro ao processar áudio')
@@ -365,7 +330,6 @@ export default function SosMentoresPage() {
                         key={m.id}
                         m={m}
                         level={level}
-                        toques={toques}
                         isAdmin={isAdmin}
                         onAudioRecorded={handleAudioRecorded}
                         uploading={uploading}
