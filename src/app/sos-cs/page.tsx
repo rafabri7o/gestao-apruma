@@ -22,6 +22,7 @@ type Abordagem = {
   marked_at: string
   marked_by_email: string | null
   marked_by_name: string | null
+  source: string
 }
 
 const levels: Level[] = [
@@ -77,20 +78,22 @@ function AbordagemBoxes({
   mentoradoId,
   abordagens,
   onToggle,
+  source,
 }: {
   mentoradoId: string
   abordagens: Abordagem[]
-  onToggle: (mentoradoId: string, boxIndex: number) => void
+  onToggle: (mentoradoId: string, boxIndex: number, source: string) => void
+  source: string
 }) {
   const markedByIndex = useMemo(() => {
     const map = new Map<number, Abordagem>()
     for (const a of abordagens) {
-      if (a.mentorado_id === mentoradoId) {
+      if (a.mentorado_id === mentoradoId && a.source === source) {
         map.set(a.box_index, a)
       }
     }
     return map
-  }, [abordagens, mentoradoId])
+  }, [abordagens, mentoradoId, source])
 
   return (
     <div className="flex items-center gap-1.5">
@@ -111,7 +114,7 @@ function AbordagemBoxes({
         return (
           <div key={i} className="relative group">
             <button
-              onClick={(e) => { e.stopPropagation(); onToggle(mentoradoId, i) }}
+              onClick={(e) => { e.stopPropagation(); onToggle(mentoradoId, i, source) }}
               className={`w-6 h-6 rounded border-2 transition-all flex items-center justify-center text-xs ${
                 isMarked
                   ? 'bg-brand-600 border-brand-600 text-white'
@@ -143,7 +146,7 @@ function MentoradoCard({
   m: Mentorado
   level: Level
   abordagens: Abordagem[]
-  onToggle: (mentoradoId: string, boxIndex: number) => void
+  onToggle: (mentoradoId: string, boxIndex: number, source: string) => void
 }) {
   const gained = m.seguidores_atual - m.seguidores_inicial
 
@@ -195,9 +198,15 @@ function MentoradoCard({
         </div>
       </div>
 
-      <div className="mt-3 pt-3 border-t border-black/5 flex items-center gap-3">
-        <span className="text-xs text-gray-500 flex-shrink-0">Abordagens:</span>
-        <AbordagemBoxes mentoradoId={m.id} abordagens={abordagens} onToggle={onToggle} />
+      <div className="mt-3 pt-3 border-t border-black/5 space-y-2">
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-500 flex-shrink-0 w-24">Abordagem CS:</span>
+          <AbordagemBoxes mentoradoId={m.id} abordagens={abordagens} onToggle={onToggle} source="cs" />
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-500 flex-shrink-0 w-24">Abordagem Rafa:</span>
+          <AbordagemBoxes mentoradoId={m.id} abordagens={abordagens} onToggle={onToggle} source="rafa" />
+        </div>
       </div>
     </div>
   )
@@ -214,7 +223,7 @@ export default function SosCsPage() {
     setLoading(true)
     const [mentRes, abrRes, userRes] = await Promise.all([
       supabase.from('mentorados').select('*').order('nome'),
-      supabase.from('sos_abordagens').select('mentorado_id, box_index, marked_at, marked_by_email, marked_by_name'),
+      supabase.from('sos_abordagens').select('mentorado_id, box_index, marked_at, marked_by_email, marked_by_name, source'),
       supabase.auth.getUser(),
     ])
     setMentorados(mentRes.data || [])
@@ -232,9 +241,9 @@ export default function SosCsPage() {
     fetchData()
   }, [fetchData])
 
-  const handleToggle = useCallback(async (mentoradoId: string, boxIndex: number) => {
+  const handleToggle = useCallback(async (mentoradoId: string, boxIndex: number, source: string) => {
     const existing = abordagens.find(
-      (a) => a.mentorado_id === mentoradoId && a.box_index === boxIndex
+      (a) => a.mentorado_id === mentoradoId && a.box_index === boxIndex && a.source === source
     )
 
     if (existing) {
@@ -243,9 +252,10 @@ export default function SosCsPage() {
         .delete()
         .eq('mentorado_id', mentoradoId)
         .eq('box_index', boxIndex)
+        .eq('source', source)
 
       setAbordagens((prev) =>
-        prev.filter((a) => !(a.mentorado_id === mentoradoId && a.box_index === boxIndex))
+        prev.filter((a) => !(a.mentorado_id === mentoradoId && a.box_index === boxIndex && a.source === source))
       )
     } else {
       const now = new Date().toISOString()
@@ -257,6 +267,7 @@ export default function SosCsPage() {
           marked_at: now,
           marked_by_email: currentUser.email,
           marked_by_name: currentUser.name,
+          source,
         })
 
       if (!error) {
@@ -268,6 +279,7 @@ export default function SosCsPage() {
             marked_at: now,
             marked_by_email: currentUser.email,
             marked_by_name: currentUser.name,
+            source,
           },
         ])
       }
