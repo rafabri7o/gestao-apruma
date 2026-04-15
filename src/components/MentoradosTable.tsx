@@ -62,9 +62,11 @@ function MobileCard({ m, onEdit, lastUpdate }: { m: Mentorado; onEdit?: (m: Ment
         <span className="bg-brand-50 text-brand-700 text-xs font-medium px-2 py-0.5 rounded-lg">{m.turma}</span>
         <span className="text-xs text-gray-500">{m.nicho}</span>
         <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ml-auto ${
-          m.plano === 12 ? 'bg-brand-100 text-brand-700' : 'bg-purple-50 text-purple-500'
+          m.status === 'cancelou' ? 'bg-red-100 text-red-700'
+            : m.status === 'pausou' ? 'bg-amber-100 text-amber-700'
+            : m.plano === 12 ? 'bg-brand-100 text-brand-700' : 'bg-purple-50 text-purple-500'
         }`}>
-          {m.plano}m
+          {m.status === 'cancelou' ? '❌ Cancelou' : m.status === 'pausou' ? '⏸️ Pausou' : `${m.plano}m`}
         </span>
       </div>
 
@@ -168,11 +170,12 @@ export default function MentoradosTable({ mentorados, onEdit, lastUpdate }: Prop
                     <td className="px-4 py-4 text-gray-600">{m.posts}</td>
                     <td className="px-4 py-4">
                       <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
-                        m.plano === 12
-                          ? 'bg-brand-100 text-brand-700'
+                        m.status === 'cancelou' ? 'bg-red-100 text-red-700'
+                          : m.status === 'pausou' ? 'bg-amber-100 text-amber-700'
+                          : m.plano === 12 ? 'bg-brand-100 text-brand-700'
                           : 'bg-purple-50 text-purple-500'
                       }`}>
-                        {m.plano}m
+                        {m.status === 'cancelou' ? '❌ Cancelou' : m.status === 'pausou' ? '⏸️ Pausou' : `${m.plano}m`}
                       </span>
                     </td>
                     <td className="px-4 py-4 text-gray-600 text-xs">{tempo}</td>
