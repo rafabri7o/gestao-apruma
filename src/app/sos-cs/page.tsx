@@ -159,7 +159,7 @@ function MentoradoCard({
   const gained = m.seguidores_atual - m.seguidores_inicial
 
   return (
-    <div className={`p-3 sm:p-4 rounded-xl border ${level.borderColor} ${level.bgColor} transition-all hover:shadow-sm ${needsBell ? 'ring-2 ring-amber-400' : ''}`}>
+    <div className={`p-3 sm:p-4 rounded-xl border ${level.borderColor} ${level.bgColor} transition-all hover:shadow-sm ${needsBell ? 'ring-2 ring-red-500' : ''}`}>
       <div className="flex items-center gap-3 sm:gap-4">
         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white overflow-hidden flex-shrink-0 shadow-sm">
           {m.avatar && m.avatar.includes('supabase') ? (
