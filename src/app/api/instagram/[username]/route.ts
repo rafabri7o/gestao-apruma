@@ -10,6 +10,10 @@ export async function GET(
     return NextResponse.json({ error: 'Username inválido' }, { status: 400 })
   }
 
+  if (!process.env.APIFY_TOKEN) {
+    return NextResponse.json({ error: 'APIFY_TOKEN not configured', hasEnv: !!process.env.APIFY_TOKEN }, { status: 500 })
+  }
+
   const profile = await fetchInstagramProfile(username)
   if (!profile) {
     return NextResponse.json({ error: 'Perfil não encontrado' }, { status: 404 })
