@@ -328,15 +328,23 @@ export default function SosCsPage() {
     return mentorados.filter((m) => m.turma === turmaFilter)
   }, [mentorados, turmaFilter])
 
-  // Bell logic: gerente checks CS source (7 days), admin checks Rafa source (15 days)
+  const classified = classifyMentorados(filtered)
+  const totalAlerts = Object.values(classified).reduce((sum, arr) => sum + arr.length, 0)
+
+  // Bell logic: only for mentorados IN SOS CS (posts < 3)
   const bellDays = role === 'admin' ? 15 : 7
   const bellSource = role === 'admin' ? 'rafa' : 'cs'
+  const sosCsMentorados = useMemo(() => [
+    ...classified['atencao-maxima'],
+    ...classified['de-um-toque'],
+  ], [classified])
+
   const needsBellSet = useMemo(() => {
     const set = new Set<string>()
     const now = Date.now()
     const threshold = bellDays * 24 * 60 * 60 * 1000
 
-    for (const m of filtered) {
+    for (const m of sosCsMentorados) {
       const relevantAbordagens = abordagens
         .filter((a) => a.mentorado_id === m.id && a.source === bellSource)
         .map((a) => new Date(a.marked_at).getTime())
@@ -348,10 +356,7 @@ export default function SosCsPage() {
       }
     }
     return set
-  }, [filtered, abordagens, bellDays, bellSource])
-
-  const classified = classifyMentorados(filtered)
-  const totalAlerts = Object.values(classified).reduce((sum, arr) => sum + arr.length, 0)
+  }, [sosCsMentorados, abordagens, bellDays, bellSource])
 
   return (
     <div>
