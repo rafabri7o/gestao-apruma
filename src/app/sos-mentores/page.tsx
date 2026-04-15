@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase, type Mentorado } from '@/lib/supabase'
 import { formatNumber } from '@/lib/utils'
 
@@ -161,6 +161,7 @@ function MentoradoCard({ m, level }: { m: Mentorado; level: Level }) {
 export default function SosMentoresPage() {
   const [mentorados, setMentorados] = useState<Mentorado[]>([])
   const [loading, setLoading] = useState(true)
+  const [turmaFilter, setTurmaFilter] = useState('')
 
   const fetchMentorados = useCallback(async () => {
     setLoading(true)
@@ -173,7 +174,14 @@ export default function SosMentoresPage() {
     fetchMentorados()
   }, [fetchMentorados])
 
-  const classified = classifyMentorados(mentorados)
+  const turmas = useMemo(() => [...new Set(mentorados.map((m) => m.turma))].sort(), [mentorados])
+
+  const filtered = useMemo(() => {
+    if (!turmaFilter) return mentorados
+    return mentorados.filter((m) => m.turma === turmaFilter)
+  }, [mentorados, turmaFilter])
+
+  const classified = classifyMentorados(filtered)
   const totalAlerts = Object.values(classified).reduce((sum, arr) => sum + arr.length, 0)
 
   return (
@@ -187,6 +195,21 @@ export default function SosMentoresPage() {
           </p>
         </div>
       </div>
+
+      {!loading && (
+        <div className="mb-6">
+          <select
+            value={turmaFilter}
+            onChange={(e) => setTurmaFilter(e.target.value)}
+            className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300 transition-colors bg-white"
+          >
+            <option value="">Todas as turmas</option>
+            {turmas.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {loading ? (
         <div className="bg-white rounded-2xl p-12 text-center text-gray-400 shadow-sm">
