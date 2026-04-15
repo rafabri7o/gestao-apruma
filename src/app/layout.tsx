@@ -6,7 +6,7 @@ import AppShell from '@/components/AppShell'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'Painel de Mentoria — Rafa Brito',
+  title: 'Mentoria Apruma®',
   description: 'Gestão de mentorados — Apruma',
 }
 
