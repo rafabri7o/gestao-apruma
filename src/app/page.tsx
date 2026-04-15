@@ -51,9 +51,7 @@ export default function Dashboard() {
   }, [fetchMentorados])
 
   useEffect(() => {
-    fetchMentorados().then(() => {
-      updateFromInstagram()
-    })
+    fetchMentorados()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const turmas = useMemo(() => [...new Set(mentorados.map((m) => m.turma))].sort(), [mentorados])
