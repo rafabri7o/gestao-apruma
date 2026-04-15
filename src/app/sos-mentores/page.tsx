@@ -43,7 +43,7 @@ const levels: Level[] = [
     key: 'fique-de-olho',
     title: 'Fique de Olho',
     icon: '🟠',
-    description: '+60 dias de mentoria, ganhou menos de 10K seguidores',
+    description: '+60 dias de mentoria, ganhou menos de 10K seguidores, postando pelo menos 5x por semana',
     borderColor: 'border-orange-200',
     bgColor: 'bg-orange-50',
     badgeBg: 'bg-orange-100',
@@ -96,8 +96,8 @@ function classifyMentorados(mentorados: Mentorado[]) {
     const dias = getDaysInMentoria(m.data_inicio)
     const gained = m.seguidores_atual - m.seguidores_inicial
 
-    // Fique de Olho: 60+ dias, <10K ganhos
-    if (dias >= 60 && gained < 10000) {
+    // Fique de Olho: 60+ dias, <10K ganhos, postando >=5/semana
+    if (dias >= 60 && gained < 10000 && m.posts >= 5) {
       fiqueDeOlho.push(m)
     }
   }
