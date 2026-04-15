@@ -13,11 +13,13 @@ type Props = {
   onGrowthChange: (v: string) => void
   onSortChange: (v: string) => void
   onRefresh: () => void
+  hideTurmaFilter?: boolean
 }
 
 export default function Filters({
   search, turmaFilter, planoFilter, growthFilter, sort, turmas,
   onSearchChange, onTurmaChange, onPlanoChange, onGrowthChange, onSortChange, onRefresh,
+  hideTurmaFilter,
 }: Props) {
   const selectClass = 'px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-300'
 
@@ -31,12 +33,14 @@ export default function Filters({
           onChange={(e) => onSearchChange(e.target.value)}
           className="flex-1 min-w-[200px] px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300"
         />
-        <select value={turmaFilter} onChange={(e) => onTurmaChange(e.target.value)} className={selectClass}>
-          <option value="">Todas as turmas</option>
-          {turmas.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
+        {!hideTurmaFilter && (
+          <select value={turmaFilter} onChange={(e) => onTurmaChange(e.target.value)} className={selectClass}>
+            <option value="">Todas as turmas</option>
+            {turmas.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+        )}
         <select value={planoFilter} onChange={(e) => onPlanoChange(e.target.value)} className={selectClass}>
           <option value="">Todos os planos</option>
           <option value="6">6 meses</option>

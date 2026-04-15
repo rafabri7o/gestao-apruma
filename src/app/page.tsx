@@ -136,6 +136,7 @@ export default function Dashboard() {
         onGrowthChange={setGrowthFilter}
         onSortChange={setSort}
         onRefresh={fetchMentorados}
+        hideTurmaFilter={isMentor}
       />
 
       {loading ? (
