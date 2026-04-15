@@ -182,7 +182,7 @@ function MentoradoCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="font-semibold text-gray-900 truncate text-sm sm:text-base">{m.nome}</span>
-            {needsBell && <span className="text-amber-500 animate-pulse flex-shrink-0" title="Precisa de um toque!">🔔</span>}
+            {needsBell && <span className="text-amber-500 animate-pulse flex-shrink-0" title="Precisa de um toque!">🚨</span>}
           </div>
           <div className="text-xs text-gray-500">@{m.instagram}</div>
         </div>
@@ -362,7 +362,7 @@ export default function SosCsPage() {
             Mentorados com poucas publicações na semana
             {!loading && <span className="ml-2 font-medium text-gray-700">({totalAlerts} alertas)</span>}
             {!loading && needsBellSet.size > 0 && (
-              <span className="ml-2 text-amber-500 font-medium">🔔 {needsBellSet.size} precisam de toque</span>
+              <span className="ml-2 text-amber-500 font-medium">🚨 {needsBellSet.size} precisam de toque</span>
             )}
           </p>
         </div>
