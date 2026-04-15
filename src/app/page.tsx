@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase, type Mentorado } from '@/lib/supabase'
+import { useUserRole } from '@/lib/useUserRole'
 import StatsCards from '@/components/StatsCards'
 import MentoradosTable from '@/components/MentoradosTable'
 import EditModal from '@/components/EditModal'
@@ -20,6 +21,8 @@ export default function Dashboard() {
   const [planoFilter, setPlanoFilter] = useState('')
   const [growthFilter, setGrowthFilter] = useState('')
   const [sort, setSort] = useState('nome')
+  const { role } = useUserRole()
+  const isAdmin = role === 'admin'
 
   const fetchMentorados = useCallback(async () => {
     setLoading(true)
@@ -90,27 +93,29 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-500 text-sm mt-1">Visão geral dos seus mentorados</p>
         </div>
-        <div className="flex items-center gap-3">
-          {lastUpdate && (
-            <span className="text-xs text-gray-400">Atualizado às {lastUpdate}</span>
-          )}
-          <button
-            onClick={updateFromInstagram}
-            disabled={updating}
-            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50"
-          >
-            {updating ? (
-              <>
-                <span className="animate-spin">🔄</span>
-                Atualizando...
-              </>
-            ) : (
-              <>
-                📸 Atualizar Instagram
-              </>
+        {isAdmin && (
+          <div className="flex items-center gap-3">
+            {lastUpdate && (
+              <span className="text-xs text-gray-400">Atualizado às {lastUpdate}</span>
             )}
-          </button>
-        </div>
+            <button
+              onClick={updateFromInstagram}
+              disabled={updating}
+              className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50"
+            >
+              {updating ? (
+                <>
+                  <span className="animate-spin">🔄</span>
+                  Atualizando...
+                </>
+              ) : (
+                <>
+                  📸 Atualizar Instagram
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       <StatsCards mentorados={filtered} />
@@ -149,6 +154,7 @@ export default function Dashboard() {
           onClose={() => setEditing(null)}
           onSave={() => { setEditing(null); fetchMentorados() }}
           onDelete={() => { setEditing(null); fetchMentorados() }}
+          userRole={role}
         />
       )}
     </div>

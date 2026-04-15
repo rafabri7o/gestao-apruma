@@ -2,15 +2,17 @@
 
 import { useState } from 'react'
 import { supabase, type Mentorado } from '@/lib/supabase'
+import type { UserRole } from '@/lib/useUserRole'
 
 type Props = {
   mentorado: Mentorado
   onClose: () => void
   onSave: () => void
   onDelete: () => void
+  userRole?: UserRole
 }
 
-export default function EditModal({ mentorado, onClose, onSave, onDelete }: Props) {
+export default function EditModal({ mentorado, onClose, onSave, onDelete, userRole = 'admin' }: Props) {
   const [form, setForm] = useState({
     nome: mentorado.nome,
     instagram: mentorado.instagram,
@@ -18,8 +20,12 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete }: Prop
     turma: mentorado.turma,
     plano: mentorado.plano,
     data_inicio: mentorado.data_inicio,
+    seguidores_atual: mentorado.seguidores_atual,
   })
   const [saving, setSaving] = useState(false)
+
+  const isAdmin = userRole === 'admin'
+  const canEditSeguidores = isAdmin
 
   const handleChange = (field: string, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -27,12 +33,22 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete }: Prop
 
   const handleSave = async () => {
     setSaving(true)
+    const updateData: Record<string, unknown> = {
+      nome: form.nome,
+      instagram: form.instagram,
+      nicho: form.nicho,
+      turma: form.turma,
+      plano: form.plano,
+      data_inicio: form.data_inicio,
+      updated_at: new Date().toISOString(),
+    }
+    if (canEditSeguidores) {
+      updateData.seguidores_atual = form.seguidores_atual
+    }
+
     const { error } = await supabase
       .from('mentorados')
-      .update({
-        ...form,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', mentorado.id)
     setSaving(false)
     if (error) {
@@ -108,16 +124,31 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete }: Prop
             <label className={labelClass}>Data de Entrada</label>
             <input type="date" className={inputClass} value={form.data_inicio} onChange={(e) => handleChange('data_inicio', e.target.value)} />
           </div>
+          {canEditSeguidores && (
+            <div>
+              <label className={labelClass}>Seguidores Atuais</label>
+              <input
+                type="number"
+                className={inputClass}
+                value={form.seguidores_atual}
+                onChange={(e) => handleChange('seguidores_atual', Number(e.target.value))}
+              />
+            </div>
+          )}
         </div>
 
         {/* Actions */}
         <div className="flex items-center justify-between p-6 border-t border-gray-100">
-          <button
-            onClick={handleDelete}
-            className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-          >
-            🗑️ Excluir
-          </button>
+          {isAdmin ? (
+            <button
+              onClick={handleDelete}
+              className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+            >
+              🗑️ Excluir
+            </button>
+          ) : (
+            <div />
+          )}
           <div className="flex gap-3">
             <button
               onClick={onClose}

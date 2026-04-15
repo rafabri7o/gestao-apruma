@@ -1,30 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { useUserRole, type UserRole } from '@/lib/useUserRole'
 
-const navItems = [
-  { label: 'Dashboard', href: '/', icon: '📊' },
-  { label: 'Cadastrar', href: '/cadastrar', icon: '➕' },
-  { label: 'SOS Mentores', href: '/sos-mentores', icon: '🆘' },
-  { label: 'SOS CS', href: '/sos-cs', icon: '⚠️' },
+const allNavItems = [
+  { label: 'Dashboard', href: '/', icon: '📊', roles: ['admin', 'gerente'] as UserRole[] },
+  { label: 'Cadastrar', href: '/cadastrar', icon: '➕', roles: ['admin', 'gerente'] as UserRole[] },
+  { label: 'SOS Mentores', href: '/sos-mentores', icon: '🆘', roles: ['admin', 'gerente', 'mentor'] as UserRole[] },
+  { label: 'SOS CS', href: '/sos-cs', icon: '⚠️', roles: ['admin', 'gerente'] as UserRole[] },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const [userName, setUserName] = useState('')
+  const { role, email, name, loading } = useUserRole()
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserName(user.user_metadata?.display_name || user.email || '')
-      }
-    }
-    getUser()
-  }, [])
+  const navItems = allNavItems.filter((item) => item.roles.includes(role))
+  const userName = name || email
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 flex flex-col z-50">
@@ -58,10 +51,11 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-gray-100 space-y-3">
-        {userName && (
+        {!loading && userName && (
           <div className="px-4 py-2 bg-gray-50 rounded-xl">
             <p className="text-xs text-gray-400">Logado como</p>
             <p className="text-sm font-medium text-gray-700 truncate">{userName}</p>
+            <p className="text-xs text-brand-600 capitalize">{role}</p>
           </div>
         )}
         <button

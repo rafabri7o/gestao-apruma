@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase, type Mentorado } from '@/lib/supabase'
+import { useUserRole } from '@/lib/useUserRole'
 import { formatNumber } from '@/lib/utils'
 
 type Level = {
@@ -159,6 +160,8 @@ export default function SosMentoresPage() {
   const [mentorados, setMentorados] = useState<Mentorado[]>([])
   const [loading, setLoading] = useState(true)
   const [turmaFilter, setTurmaFilter] = useState('')
+  const { role, turma: userTurma } = useUserRole()
+  const isMentor = role === 'mentor'
 
   const fetchMentorados = useCallback(async () => {
     setLoading(true)
@@ -174,9 +177,15 @@ export default function SosMentoresPage() {
   const turmas = useMemo(() => [...new Set(mentorados.map((m) => m.turma))].sort(), [mentorados])
 
   const filtered = useMemo(() => {
-    if (!turmaFilter) return mentorados
-    return mentorados.filter((m) => m.turma === turmaFilter)
-  }, [mentorados, turmaFilter])
+    let result = mentorados
+    // Mentors can only see their own turma
+    if (isMentor && userTurma) {
+      result = result.filter((m) => m.turma === userTurma)
+    } else if (turmaFilter) {
+      result = result.filter((m) => m.turma === turmaFilter)
+    }
+    return result
+  }, [mentorados, turmaFilter, isMentor, userTurma])
 
   const classified = classifyMentorados(filtered)
   const totalAlerts = Object.values(classified).reduce((sum, arr) => sum + arr.length, 0)
@@ -193,7 +202,7 @@ export default function SosMentoresPage() {
         </div>
       </div>
 
-      {!loading && (
+      {!loading && !isMentor && (
         <div className="mb-6">
           <select
             value={turmaFilter}
