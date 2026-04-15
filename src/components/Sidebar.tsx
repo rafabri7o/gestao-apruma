@@ -9,6 +9,7 @@ const navItems = [
   { label: 'Dashboard', href: '/', icon: '📊' },
   { label: 'Cadastrar', href: '/cadastrar', icon: '➕' },
   { label: 'SOS Mentores', href: '/sos-mentores', icon: '🆘' },
+  { label: 'SOS CS', href: '/sos-cs', icon: '⚠️' },
 ]
 
 export default function Sidebar() {
