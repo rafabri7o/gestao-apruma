@@ -14,6 +14,54 @@ const allNavItems = [
   { label: 'Toque do Rafa', href: '/toque-do-rafa', icon: '🎙️', roles: ['admin', 'gerente', 'mentor'] as UserRole[] },
 ]
 
+function useSosCsBells(role: UserRole) {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    // Only for admin and gerente
+    if (role === 'mentor') return
+
+    const fetchBells = async () => {
+      const bellDays = role === 'admin' ? 15 : 7
+      const threshold = bellDays * 24 * 60 * 60 * 1000
+      const now = Date.now()
+
+      // Get mentorados with low posts (SOS CS criteria: posts < 3)
+      const { data: mentorados } = await supabase
+        .from('mentorados')
+        .select('id, posts')
+      if (!mentorados) return
+
+      const sosCsIds = mentorados.filter((m) => m.posts < 3).map((m) => m.id)
+      if (sosCsIds.length === 0) { setCount(0); return }
+
+      // Get CS abordagens
+      const { data: abordagens } = await supabase
+        .from('sos_abordagens')
+        .select('mentorado_id, marked_at')
+        .eq('source', 'cs')
+
+      let bellCount = 0
+      for (const id of sosCsIds) {
+        const csContacts = (abordagens || [])
+          .filter((a) => a.mentorado_id === id)
+          .map((a) => new Date(a.marked_at).getTime())
+        const lastContact = csContacts.length > 0 ? Math.max(...csContacts) : 0
+        if (lastContact === 0 || now - lastContact >= threshold) {
+          bellCount++
+        }
+      }
+      setCount(bellCount)
+    }
+
+    fetchBells()
+    const interval = setInterval(fetchBells, 30000)
+    return () => clearInterval(interval)
+  }, [role])
+
+  return count
+}
+
 function useUnreadToques(role: UserRole, turma: string | null) {
   const [count, setCount] = useState(0)
 
@@ -71,8 +119,10 @@ export default function Sidebar() {
   const { role, email, name, turma, loading } = useUserRole()
   const [open, setOpen] = useState(false)
   const unreadToques = useUnreadToques(role, turma)
+  const sosCsBells = useSosCsBells(role)
 
   const navItems = allNavItems.filter((item) => item.roles.includes(role))
+  const totalSidebarBadge = unreadToques + sosCsBells
   const userName = name || email
 
   return (
@@ -83,9 +133,9 @@ export default function Sidebar() {
         className="fixed top-4 left-4 z-50 lg:hidden bg-white border border-gray-200 rounded-xl p-2 shadow-sm"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        {unreadToques > 0 && (
+        {totalSidebarBadge > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-            {unreadToques > 9 ? '9+' : unreadToques}
+            {totalSidebarBadge > 9 ? '9+' : totalSidebarBadge}
           </span>
         )}
       </button>
@@ -116,7 +166,9 @@ export default function Sidebar() {
         <nav className="flex-1 px-4 space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href
-            const showBadge = item.href === '/toque-do-rafa' && unreadToques > 0
+            const toqueBadge = item.href === '/toque-do-rafa' && unreadToques > 0 ? unreadToques : 0
+            const csBadge = item.href === '/sos-cs' && sosCsBells > 0 ? sosCsBells : 0
+            const badgeCount = toqueBadge || csBadge
             return (
               <Link
                 key={item.href}
@@ -130,9 +182,9 @@ export default function Sidebar() {
               >
                 <span className="text-lg">{item.icon}</span>
                 {item.label}
-                {showBadge && (
-                  <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                    {unreadToques > 9 ? '9+' : unreadToques}
+                {badgeCount > 0 && (
+                  <span className={`ml-auto text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${csBadge ? 'bg-amber-500' : 'bg-red-500'}`}>
+                    {badgeCount > 9 ? '9+' : badgeCount}
                   </span>
                 )}
               </Link>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase, type Mentorado } from '@/lib/supabase'
+import { useUserRole } from '@/lib/useUserRole'
 import { formatNumber } from '@/lib/utils'
 
 type Level = {
@@ -142,16 +143,18 @@ function MentoradoCard({
   level,
   abordagens,
   onToggle,
+  needsBell,
 }: {
   m: Mentorado
   level: Level
   abordagens: Abordagem[]
   onToggle: (mentoradoId: string, boxIndex: number, source: string) => void
+  needsBell: boolean
 }) {
   const gained = m.seguidores_atual - m.seguidores_inicial
 
   return (
-    <div className={`p-3 sm:p-4 rounded-xl border ${level.borderColor} ${level.bgColor} transition-all hover:shadow-sm`}>
+    <div className={`p-3 sm:p-4 rounded-xl border ${level.borderColor} ${level.bgColor} transition-all hover:shadow-sm ${needsBell ? 'ring-2 ring-amber-400' : ''}`}>
       <div className="flex items-center gap-3 sm:gap-4">
         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white overflow-hidden flex-shrink-0 shadow-sm">
           {m.avatar && m.avatar.includes('supabase') ? (
@@ -172,7 +175,10 @@ function MentoradoCard({
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-gray-900 truncate text-sm sm:text-base">{m.nome}</div>
+          <div className="flex items-center gap-1.5">
+            <span className="font-semibold text-gray-900 truncate text-sm sm:text-base">{m.nome}</span>
+            {needsBell && <span className="text-amber-500 animate-pulse flex-shrink-0" title="Precisa de um toque!">🔔</span>}
+          </div>
           <div className="text-xs text-gray-500">@{m.instagram}</div>
         </div>
 
@@ -231,6 +237,7 @@ export default function SosCsPage() {
   const [loading, setLoading] = useState(true)
   const [turmaFilter, setTurmaFilter] = useState('')
   const [currentUser, setCurrentUser] = useState<{ email: string; name: string }>({ email: '', name: '' })
+  const { role } = useUserRole()
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -306,6 +313,28 @@ export default function SosCsPage() {
     return mentorados.filter((m) => m.turma === turmaFilter)
   }, [mentorados, turmaFilter])
 
+  // Bell logic: gerente = 7 days, admin = 15 days since last CS abordagem
+  const bellDays = role === 'admin' ? 15 : 7
+  const needsBellSet = useMemo(() => {
+    const set = new Set<string>()
+    const now = Date.now()
+    const threshold = bellDays * 24 * 60 * 60 * 1000
+
+    for (const m of filtered) {
+      // Find the most recent CS abordagem for this mentorado
+      const csAbordagens = abordagens
+        .filter((a) => a.mentorado_id === m.id && a.source === 'cs')
+        .map((a) => new Date(a.marked_at).getTime())
+
+      const lastContact = csAbordagens.length > 0 ? Math.max(...csAbordagens) : 0
+
+      if (lastContact === 0 || now - lastContact >= threshold) {
+        set.add(m.id)
+      }
+    }
+    return set
+  }, [filtered, abordagens, bellDays])
+
   const classified = classifyMentorados(filtered)
   const totalAlerts = Object.values(classified).reduce((sum, arr) => sum + arr.length, 0)
 
@@ -317,6 +346,9 @@ export default function SosCsPage() {
           <p className="text-gray-500 text-sm mt-1">
             Mentorados com poucas publicações na semana
             {!loading && <span className="ml-2 font-medium text-gray-700">({totalAlerts} alertas)</span>}
+            {!loading && needsBellSet.size > 0 && (
+              <span className="ml-2 text-amber-500 font-medium">🔔 {needsBellSet.size} precisam de toque</span>
+            )}
           </p>
         </div>
       </div>
@@ -370,7 +402,7 @@ export default function SosCsPage() {
                 ) : (
                   <div className="space-y-2">
                     {list.map((m) => (
-                      <MentoradoCard key={m.id} m={m} level={level} abordagens={abordagens} onToggle={handleToggle} />
+                      <MentoradoCard key={m.id} m={m} level={level} abordagens={abordagens} onToggle={handleToggle} needsBell={needsBellSet.has(m.id)} />
                     ))}
                   </div>
                 )}
