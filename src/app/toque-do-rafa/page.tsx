@@ -11,6 +11,9 @@ type Toque = {
   audio_url: string
   created_by_name: string | null
   created_at: string
+  passed_to_mentorado: boolean
+  passed_at: string | null
+  passed_by_name: string | null
 }
 
 type ToqueRead = {
@@ -23,14 +26,14 @@ export default function ToqueDoRafaPage() {
   const [reads, setReads] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
-  const { role, turma: userTurma } = useUserRole()
+  const { role, turma: userTurma, name: userName } = useUserRole()
   const isMentor = role === 'mentor'
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     const [mentRes, toqueRes, userRes] = await Promise.all([
       supabase.from('mentorados').select('*'),
-      supabase.from('toques').select('id, mentorado_id, audio_url, created_by_name, created_at').order('created_at', { ascending: false }),
+      supabase.from('toques').select('id, mentorado_id, audio_url, created_by_name, created_at, passed_to_mentorado, passed_at, passed_by_name').order('created_at', { ascending: false }),
       supabase.auth.getUser(),
     ])
     setMentorados(mentRes.data || [])
@@ -57,6 +60,26 @@ export default function ToqueDoRafaPage() {
     await supabase.from('toque_reads').insert({ toque_id: toqueId, user_id: userId })
     setReads((prev) => new Set([...prev, toqueId]))
   }, [userId, reads])
+
+  const togglePassed = useCallback(async (toqueId: string, currentValue: boolean) => {
+    const now = new Date().toISOString()
+    await supabase
+      .from('toques')
+      .update({
+        passed_to_mentorado: !currentValue,
+        passed_at: !currentValue ? now : null,
+        passed_by_name: !currentValue ? (userName || 'Mentor') : null,
+      })
+      .eq('id', toqueId)
+
+    setToques((prev) =>
+      prev.map((t) =>
+        t.id === toqueId
+          ? { ...t, passed_to_mentorado: !currentValue, passed_at: !currentValue ? now : null, passed_by_name: !currentValue ? (userName || 'Mentor') : null }
+          : t
+      )
+    )
+  }, [userName])
 
   const mentoradoMap = useMemo(() => {
     const map = new Map<string, Mentorado>()
@@ -182,8 +205,8 @@ export default function ToqueDoRafaPage() {
                   )}
                 </div>
 
-                {/* Audio player */}
-                <div className="flex items-center gap-2">
+                {/* Audio player + passed checkbox */}
+                <div className="flex items-center gap-3">
                   <audio
                     controls
                     src={t.audio_url}
@@ -191,6 +214,32 @@ export default function ToqueDoRafaPage() {
                     preload="none"
                     onPlay={() => markAsRead(t.id)}
                   />
+                  <div className="flex-shrink-0 relative group">
+                    <button
+                      onClick={() => togglePassed(t.id, t.passed_to_mentorado)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                        t.passed_to_mentorado
+                          ? 'bg-green-100 border-green-300 text-green-700'
+                          : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-green-300 hover:text-green-600'
+                      }`}
+                    >
+                      <span className={`w-4 h-4 rounded border-2 flex items-center justify-center text-[10px] ${
+                        t.passed_to_mentorado
+                          ? 'bg-green-500 border-green-500 text-white'
+                          : 'border-gray-300'
+                      }`}>
+                        {t.passed_to_mentorado && '✓'}
+                      </span>
+                      Passado
+                    </button>
+                    {t.passed_to_mentorado && t.passed_at && (
+                      <div className="absolute bottom-full right-0 mb-2 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                        <div>{new Date(t.passed_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                        {t.passed_by_name && <div className="text-gray-300">por {t.passed_by_name}</div>}
+                        <div className="absolute top-full right-3 border-4 border-transparent border-t-gray-900" />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )
