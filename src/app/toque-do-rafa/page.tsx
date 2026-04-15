@@ -216,11 +216,14 @@ export default function ToqueDoRafaPage() {
                   />
                   <div className="flex-shrink-0 relative group">
                     <button
-                      onClick={() => togglePassed(t.id, t.passed_to_mentorado)}
+                      onClick={() => isMentor && togglePassed(t.id, t.passed_to_mentorado)}
+                      disabled={!isMentor}
                       className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                         t.passed_to_mentorado
                           ? 'bg-green-100 border-green-300 text-green-700'
-                          : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-green-300 hover:text-green-600'
+                          : isMentor
+                            ? 'bg-gray-50 border-gray-200 text-gray-500 hover:border-green-300 hover:text-green-600 cursor-pointer'
+                            : 'bg-gray-50 border-gray-200 text-gray-400 cursor-default'
                       }`}
                     >
                       <span className={`w-4 h-4 rounded border-2 flex items-center justify-center text-[10px] ${
