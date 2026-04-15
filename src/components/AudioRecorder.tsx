@@ -3,8 +3,30 @@
 import { useState, useRef } from 'react'
 
 type Props = {
-  onRecorded: (blob: Blob) => void
+  onRecorded: (blob: Blob, extension: string) => void
   disabled?: boolean
+}
+
+function getSupportedMimeType(): { mimeType: string; extension: string } {
+  const types = [
+    { mimeType: 'audio/webm;codecs=opus', extension: 'webm' },
+    { mimeType: 'audio/webm', extension: 'webm' },
+    { mimeType: 'audio/mp4', extension: 'm4a' },
+    { mimeType: 'audio/aac', extension: 'aac' },
+    { mimeType: 'audio/ogg', extension: 'ogg' },
+    { mimeType: 'audio/wav', extension: 'wav' },
+  ]
+
+  if (typeof MediaRecorder !== 'undefined') {
+    for (const t of types) {
+      if (MediaRecorder.isTypeSupported(t.mimeType)) {
+        return t
+      }
+    }
+  }
+
+  // Fallback - let the browser pick
+  return { mimeType: '', extension: 'webm' }
 }
 
 export default function AudioRecorder({ onRecorded, disabled }: Props) {
@@ -13,11 +35,25 @@ export default function AudioRecorder({ onRecorded, disabled }: Props) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const mimeRef = useRef<{ mimeType: string; extension: string }>({ mimeType: '', extension: 'webm' })
 
   const start = async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Seu navegador não suporta gravação de áudio. Tente usar o Chrome ou Safari.')
+        return
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
+      const supported = getSupportedMimeType()
+      mimeRef.current = supported
+
+      const options: MediaRecorderOptions = {}
+      if (supported.mimeType) {
+        options.mimeType = supported.mimeType
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, options)
       mediaRecorderRef.current = mediaRecorder
       chunksRef.current = []
 
@@ -26,17 +62,23 @@ export default function AudioRecorder({ onRecorded, disabled }: Props) {
       }
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        onRecorded(blob)
+        const mimeType = supported.mimeType || mediaRecorder.mimeType || 'audio/webm'
+        const blob = new Blob(chunksRef.current, { type: mimeType })
+        onRecorded(blob, supported.extension)
         stream.getTracks().forEach((t) => t.stop())
       }
 
-      mediaRecorder.start()
+      mediaRecorder.start(1000) // collect data every second for better compatibility
       setRecording(true)
       setSeconds(0)
       timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000)
-    } catch {
-      alert('Não foi possível acessar o microfone')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : ''
+      if (msg.includes('Permission') || msg.includes('NotAllowed')) {
+        alert('Permissão de microfone negada. Vá em Ajustes > Safari > Microfone e permita o acesso para este site.')
+      } else {
+        alert('Não foi possível acessar o microfone. Verifique as permissões do navegador.')
+      }
     }
   }
 

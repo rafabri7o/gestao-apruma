@@ -122,7 +122,7 @@ function MentoradoCard({
   level: Level
   toques: Toque[]
   isAdmin: boolean
-  onAudioRecorded: (mentoradoId: string, blob: Blob) => void
+  onAudioRecorded: (mentoradoId: string, blob: Blob, extension: string) => void
   uploading: string | null
 }) {
   const dias = getDaysInMentoria(m.data_inicio)
@@ -194,7 +194,7 @@ function MentoradoCard({
         {isAdmin && (
           <div className="mb-2">
             <AudioRecorder
-              onRecorded={(blob) => onAudioRecorded(m.id, blob)}
+              onRecorded={(blob, ext) => onAudioRecorded(m.id, blob, ext)}
               disabled={uploading === m.id}
             />
             {uploading === m.id && (
@@ -246,14 +246,14 @@ export default function SosMentoresPage() {
     fetchData()
   }, [fetchData])
 
-  const handleAudioRecorded = useCallback(async (mentoradoId: string, blob: Blob) => {
+  const handleAudioRecorded = useCallback(async (mentoradoId: string, blob: Blob, extension: string) => {
     setUploading(mentoradoId)
     try {
-      const fileName = `${mentoradoId}_${Date.now()}.webm`
+      const fileName = `${mentoradoId}_${Date.now()}.${extension}`
 
       const { error: upErr } = await supabase.storage
         .from('audios')
-        .upload(fileName, blob, { contentType: 'audio/webm', upsert: false })
+        .upload(fileName, blob, { contentType: blob.type || 'audio/webm', upsert: false })
 
       if (upErr) {
         alert('Erro ao enviar áudio: ' + upErr.message)
