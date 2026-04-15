@@ -11,7 +11,6 @@ const supabaseAdmin = createClient(
 const BATCH_SIZE = 20
 
 export async function GET(request: Request) {
-  // Verify the request is from Vercel Cron
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -34,17 +33,29 @@ export async function GET(request: Request) {
       const usernames = batch.map((m) => m.instagram)
       const profiles = await fetchMultipleProfiles(usernames)
 
+      // Upload all avatars in parallel immediately (CDN URLs expire fast)
+      const avatarUploads = new Map<string, Promise<string | null>>()
+      for (const m of batch) {
+        const cleanIg = m.instagram.replace('@', '').trim().toLowerCase()
+        const profile = profiles.get(cleanIg)
+        if (profile?.profile_pic_url) {
+          avatarUploads.set(cleanIg, uploadAvatarToStorage(m.instagram, profile.profile_pic_url))
+        }
+      }
+
+      const uploadResults = new Map<string, string | null>()
+      for (const [ig, promise] of avatarUploads) {
+        uploadResults.set(ig, await promise)
+      }
+
       for (const m of batch) {
         const cleanIg = m.instagram.replace('@', '').trim().toLowerCase()
         const profile = profiles.get(cleanIg)
         if (!profile) continue
 
         try {
-          let avatarUrl = profile.profile_pic_url || undefined
-          if (profile.profile_pic_url) {
-            const storageUrl = await uploadAvatarToStorage(m.instagram, profile.profile_pic_url)
-            if (storageUrl) avatarUrl = storageUrl
-          }
+          const storageUrl = uploadResults.get(cleanIg)
+          const avatarUrl = storageUrl || profile.profile_pic_url || undefined
 
           await supabaseAdmin
             .from('mentorados')
