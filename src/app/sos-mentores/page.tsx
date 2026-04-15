@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase, type Mentorado } from '@/lib/supabase'
 import { useUserRole } from '@/lib/useUserRole'
 import { formatNumber } from '@/lib/utils'
+import AudioRecorder from '@/components/AudioRecorder'
 
 type Level = {
   key: string
@@ -15,6 +16,14 @@ type Level = {
   badgeBg: string
   badgeText: string
   iconBg: string
+}
+
+type Toque = {
+  id: string
+  mentorado_id: string
+  audio_url: string
+  created_by_name: string | null
+  created_at: string
 }
 
 const levels: Level[] = [
@@ -70,9 +79,8 @@ function classifyMentorados(mentorados: Mentorado[]) {
   for (const m of mentorados) {
     const dias = getDaysInMentoria(m.data_inicio)
     const gained = m.seguidores_atual - m.seguidores_inicial
-    const postsPerWeek = m.posts
 
-    if (dias >= 90 && gained < 10000 && postsPerWeek >= 5) {
+    if (dias >= 90 && gained < 10000 && m.posts >= 5) {
       atencaoMaxima.push(m)
       atencaoMaximaIds.add(m.id)
     }
@@ -82,9 +90,8 @@ function classifyMentorados(mentorados: Mentorado[]) {
     if (atencaoMaximaIds.has(m.id)) continue
     const dias = getDaysInMentoria(m.data_inicio)
     const gained = m.seguidores_atual - m.seguidores_inicial
-    const postsPerWeek = m.posts
 
-    if (dias >= 90 && gained < 30000 && postsPerWeek >= 5) {
+    if (dias >= 90 && gained < 30000 && m.posts >= 5) {
       precisaAjuda.push(m)
       precisaAjudaIds.add(m.id)
     }
@@ -103,9 +110,24 @@ function classifyMentorados(mentorados: Mentorado[]) {
   return { 'atencao-maxima': atencaoMaxima, 'precisa-ajuda': precisaAjuda, 'fique-de-olho': fiqueDeOlho }
 }
 
-function MentoradoCard({ m, level }: { m: Mentorado; level: Level }) {
+function MentoradoCard({
+  m,
+  level,
+  toques,
+  isAdmin,
+  onAudioRecorded,
+  uploading,
+}: {
+  m: Mentorado
+  level: Level
+  toques: Toque[]
+  isAdmin: boolean
+  onAudioRecorded: (mentoradoId: string, blob: Blob) => void
+  uploading: string | null
+}) {
   const dias = getDaysInMentoria(m.data_inicio)
   const gained = m.seguidores_atual - m.seguidores_inicial
+  const mentoradoToques = toques.filter((t) => t.mentorado_id === m.id)
 
   return (
     <div className={`p-3 sm:p-4 rounded-xl border ${level.borderColor} ${level.bgColor} transition-all hover:shadow-sm`}>
@@ -166,33 +188,107 @@ function MentoradoCard({ m, level }: { m: Mentorado; level: Level }) {
           <div className="font-bold text-gray-700 truncate">{m.turma}</div>
         </div>
       </div>
+
+      {/* Audio section */}
+      <div className="mt-3 pt-3 border-t border-black/5">
+        {isAdmin && (
+          <div className="mb-2">
+            <AudioRecorder
+              onRecorded={(blob) => onAudioRecorded(m.id, blob)}
+              disabled={uploading === m.id}
+            />
+            {uploading === m.id && (
+              <span className="text-xs text-brand-600 ml-2">Enviando...</span>
+            )}
+          </div>
+        )}
+
+        {mentoradoToques.length > 0 && (
+          <div className="space-y-2">
+            {mentoradoToques.map((t) => (
+              <div key={t.id} className="flex items-center gap-2 bg-white/60 rounded-lg p-2">
+                <audio controls src={t.audio_url} className="h-8 flex-1 min-w-0" preload="none" />
+                <div className="text-[10px] text-gray-400 flex-shrink-0">
+                  <div>{t.created_by_name || 'Rafa'}</div>
+                  <div>{new Date(t.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
 export default function SosMentoresPage() {
   const [mentorados, setMentorados] = useState<Mentorado[]>([])
+  const [toques, setToques] = useState<Toque[]>([])
   const [loading, setLoading] = useState(true)
   const [turmaFilter, setTurmaFilter] = useState('')
-  const { role, turma: userTurma } = useUserRole()
+  const [uploading, setUploading] = useState<string | null>(null)
+  const { role, turma: userTurma, email, name } = useUserRole()
   const isMentor = role === 'mentor'
+  const isAdmin = role === 'admin'
 
-  const fetchMentorados = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase.from('mentorados').select('*').order('nome')
-    setMentorados(data || [])
+    const [mentRes, toqueRes] = await Promise.all([
+      supabase.from('mentorados').select('*').order('nome'),
+      supabase.from('toques').select('id, mentorado_id, audio_url, created_by_name, created_at').order('created_at', { ascending: false }),
+    ])
+    setMentorados(mentRes.data || [])
+    setToques(toqueRes.data || [])
     setLoading(false)
   }, [])
 
   useEffect(() => {
-    fetchMentorados()
-  }, [fetchMentorados])
+    fetchData()
+  }, [fetchData])
+
+  const handleAudioRecorded = useCallback(async (mentoradoId: string, blob: Blob) => {
+    setUploading(mentoradoId)
+    try {
+      const fileName = `${mentoradoId}_${Date.now()}.webm`
+
+      const { error: upErr } = await supabase.storage
+        .from('audios')
+        .upload(fileName, blob, { contentType: 'audio/webm', upsert: false })
+
+      if (upErr) {
+        alert('Erro ao enviar áudio: ' + upErr.message)
+        setUploading(null)
+        return
+      }
+
+      const { data: urlData } = supabase.storage.from('audios').getPublicUrl(fileName)
+
+      const { data: toque, error: dbErr } = await supabase
+        .from('toques')
+        .insert({
+          mentorado_id: mentoradoId,
+          audio_url: urlData.publicUrl,
+          created_by_email: email,
+          created_by_name: name || 'Rafa',
+        })
+        .select('id, mentorado_id, audio_url, created_by_name, created_at')
+        .single()
+
+      if (dbErr) {
+        alert('Erro ao salvar toque: ' + dbErr.message)
+      } else if (toque) {
+        setToques((prev) => [toque, ...prev])
+      }
+    } catch {
+      alert('Erro ao processar áudio')
+    }
+    setUploading(null)
+  }, [email, name])
 
   const turmas = useMemo(() => [...new Set(mentorados.map((m) => m.turma))].sort(), [mentorados])
 
   const filtered = useMemo(() => {
     let result = mentorados
-    // Mentors can only see their own turma
     if (isMentor && userTurma) {
       result = result.filter((m) => m.turma === userTurma)
     } else if (turmaFilter) {
@@ -265,7 +361,15 @@ export default function SosMentoresPage() {
                 ) : (
                   <div className="space-y-2">
                     {list.map((m) => (
-                      <MentoradoCard key={m.id} m={m} level={level} />
+                      <MentoradoCard
+                        key={m.id}
+                        m={m}
+                        level={level}
+                        toques={toques}
+                        isAdmin={isAdmin}
+                        onAudioRecorded={handleAudioRecorded}
+                        uploading={uploading}
+                      />
                     ))}
                   </div>
                 )}

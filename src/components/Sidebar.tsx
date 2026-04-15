@@ -11,6 +11,7 @@ const allNavItems = [
   { label: 'Cadastrar', href: '/cadastrar', icon: '➕', roles: ['admin', 'gerente'] as UserRole[] },
   { label: 'SOS Mentores', href: '/sos-mentores', icon: '🆘', roles: ['admin', 'gerente', 'mentor'] as UserRole[] },
   { label: 'SOS CS', href: '/sos-cs', icon: '⚠️', roles: ['admin', 'gerente'] as UserRole[] },
+  { label: 'Toque do Rafa', href: '/toque-do-rafa', icon: '🎙️', roles: ['admin', 'gerente', 'mentor'] as UserRole[] },
 ]
 
 export default function Sidebar() {
