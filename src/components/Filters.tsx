@@ -21,7 +21,7 @@ export default function Filters({
   onSearchChange, onTurmaChange, onPlanoChange, onGrowthChange, onSortChange, onRefresh,
   hideTurmaFilter,
 }: Props) {
-  const selectClass = 'px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-300'
+  const selectClass = 'w-full sm:w-auto px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-300'
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 lg:p-6 mb-4 lg:mb-6 animate-fade-in">
@@ -31,7 +31,7 @@ export default function Filters({
           placeholder="Buscar mentorado..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="flex-1 min-w-[200px] px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300"
+          className="w-full sm:flex-1 sm:min-w-[200px] px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300"
         />
         {!hideTurmaFilter && (
           <select value={turmaFilter} onChange={(e) => onTurmaChange(e.target.value)} className={selectClass}>
