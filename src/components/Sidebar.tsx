@@ -23,6 +23,7 @@ function useSosCsBells(role: UserRole) {
 
     const fetchBells = async () => {
       const bellDays = role === 'admin' ? 15 : 7
+      const bellSource = role === 'admin' ? 'rafa' : 'cs'
       const threshold = bellDays * 24 * 60 * 60 * 1000
       const now = Date.now()
 
@@ -35,18 +36,18 @@ function useSosCsBells(role: UserRole) {
       const sosCsIds = mentorados.filter((m) => m.posts < 3).map((m) => m.id)
       if (sosCsIds.length === 0) { setCount(0); return }
 
-      // Get CS abordagens
+      // Get abordagens for the relevant source
       const { data: abordagens } = await supabase
         .from('sos_abordagens')
         .select('mentorado_id, marked_at')
-        .eq('source', 'cs')
+        .eq('source', bellSource)
 
       let bellCount = 0
       for (const id of sosCsIds) {
-        const csContacts = (abordagens || [])
+        const contacts = (abordagens || [])
           .filter((a) => a.mentorado_id === id)
           .map((a) => new Date(a.marked_at).getTime())
-        const lastContact = csContacts.length > 0 ? Math.max(...csContacts) : 0
+        const lastContact = contacts.length > 0 ? Math.max(...contacts) : 0
         if (lastContact === 0 || now - lastContact >= threshold) {
           bellCount++
         }

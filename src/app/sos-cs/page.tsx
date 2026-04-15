@@ -83,7 +83,7 @@ function AbordagemBoxes({
 }: {
   mentoradoId: string
   abordagens: Abordagem[]
-  onToggle: (mentoradoId: string, boxIndex: number, source: string) => void
+  onToggle?: (mentoradoId: string, boxIndex: number, source: string) => void
   source: string
 }) {
   const markedByIndex = useMemo(() => {
@@ -115,11 +115,14 @@ function AbordagemBoxes({
         return (
           <div key={i} className="relative group">
             <button
-              onClick={(e) => { e.stopPropagation(); onToggle(mentoradoId, i, source) }}
+              onClick={(e) => { e.stopPropagation(); onToggle?.(mentoradoId, i, source) }}
+              disabled={!onToggle}
               className={`w-5 h-5 sm:w-6 sm:h-6 rounded border-2 transition-all flex items-center justify-center text-[10px] sm:text-xs ${
                 isMarked
                   ? 'bg-brand-600 border-brand-600 text-white'
-                  : 'bg-white border-gray-300 hover:border-brand-400'
+                  : onToggle
+                    ? 'bg-white border-gray-300 hover:border-brand-400 cursor-pointer'
+                    : 'bg-white border-gray-200 cursor-default'
               }`}
             >
               {isMarked && '✓'}
@@ -144,12 +147,14 @@ function MentoradoCard({
   abordagens,
   onToggle,
   needsBell,
+  userRole,
 }: {
   m: Mentorado
   level: Level
   abordagens: Abordagem[]
   onToggle: (mentoradoId: string, boxIndex: number, source: string) => void
   needsBell: boolean
+  userRole: string
 }) {
   const gained = m.seguidores_atual - m.seguidores_inicial
 
@@ -220,11 +225,21 @@ function MentoradoCard({
       <div className="mt-3 pt-3 border-t border-black/5 space-y-2">
         <div className="flex items-center gap-2 sm:gap-3">
           <span className="text-xs text-gray-500 flex-shrink-0 w-20 sm:w-24">Abordagem CS:</span>
-          <AbordagemBoxes mentoradoId={m.id} abordagens={abordagens} onToggle={onToggle} source="cs" />
+          <AbordagemBoxes
+            mentoradoId={m.id}
+            abordagens={abordagens}
+            onToggle={userRole === 'admin' ? undefined : onToggle}
+            source="cs"
+          />
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           <span className="text-xs text-gray-500 flex-shrink-0 w-20 sm:w-24">Abordagem Rafa:</span>
-          <AbordagemBoxes mentoradoId={m.id} abordagens={abordagens} onToggle={onToggle} source="rafa" />
+          <AbordagemBoxes
+            mentoradoId={m.id}
+            abordagens={abordagens}
+            onToggle={userRole === 'admin' ? onToggle : undefined}
+            source="rafa"
+          />
         </div>
       </div>
     </div>
@@ -313,27 +328,27 @@ export default function SosCsPage() {
     return mentorados.filter((m) => m.turma === turmaFilter)
   }, [mentorados, turmaFilter])
 
-  // Bell logic: gerente = 7 days, admin = 15 days since last CS abordagem
+  // Bell logic: gerente checks CS source (7 days), admin checks Rafa source (15 days)
   const bellDays = role === 'admin' ? 15 : 7
+  const bellSource = role === 'admin' ? 'rafa' : 'cs'
   const needsBellSet = useMemo(() => {
     const set = new Set<string>()
     const now = Date.now()
     const threshold = bellDays * 24 * 60 * 60 * 1000
 
     for (const m of filtered) {
-      // Find the most recent CS abordagem for this mentorado
-      const csAbordagens = abordagens
-        .filter((a) => a.mentorado_id === m.id && a.source === 'cs')
+      const relevantAbordagens = abordagens
+        .filter((a) => a.mentorado_id === m.id && a.source === bellSource)
         .map((a) => new Date(a.marked_at).getTime())
 
-      const lastContact = csAbordagens.length > 0 ? Math.max(...csAbordagens) : 0
+      const lastContact = relevantAbordagens.length > 0 ? Math.max(...relevantAbordagens) : 0
 
       if (lastContact === 0 || now - lastContact >= threshold) {
         set.add(m.id)
       }
     }
     return set
-  }, [filtered, abordagens, bellDays])
+  }, [filtered, abordagens, bellDays, bellSource])
 
   const classified = classifyMentorados(filtered)
   const totalAlerts = Object.values(classified).reduce((sum, arr) => sum + arr.length, 0)
@@ -402,7 +417,7 @@ export default function SosCsPage() {
                 ) : (
                   <div className="space-y-2">
                     {list.map((m) => (
-                      <MentoradoCard key={m.id} m={m} level={level} abordagens={abordagens} onToggle={handleToggle} needsBell={needsBellSet.has(m.id)} />
+                      <MentoradoCard key={m.id} m={m} level={level} abordagens={abordagens} onToggle={handleToggle} needsBell={needsBellSet.has(m.id)} userRole={role} />
                     ))}
                   </div>
                 )}
