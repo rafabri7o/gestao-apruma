@@ -1,7 +1,25 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { fetchInstagramProfile } from '@/lib/instagram'
+import { uploadAvatarToStorage } from '@/lib/avatar-storage'
 
-const RAPIDAPI_KEY = 'b98335a482msh9b5720ba320008ap1dd462jsna7f5ee749f64'
-const RAPIDAPI_HOST = 'instagram-looter2.p.rapidapi.com'
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+async function fetchImageBuffer(url: string): Promise<{ buffer: ArrayBuffer; contentType: string } | null> {
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    return {
+      buffer: await res.arrayBuffer(),
+      contentType: res.headers.get('content-type') || 'image/jpeg',
+    }
+  } catch {
+    return null
+  }
+}
 
 export async function GET(
   _request: Request,
@@ -13,35 +31,47 @@ export async function GET(
   }
 
   try {
-    // Fetch profile to get fresh avatar URL
-    const res = await fetch(
-      `https://${RAPIDAPI_HOST}/profile?username=${username}`,
-      {
-        headers: {
-          'x-rapidapi-key': RAPIDAPI_KEY,
-          'x-rapidapi-host': RAPIDAPI_HOST,
-        },
-        next: { revalidate: 3600 }, // Cache for 1 hour
+    // 1. Try using the avatar URL stored in the database
+    const { data: mentorado } = await supabaseAdmin
+      .from('mentorados')
+      .select('avatar')
+      .eq('instagram', username)
+      .single()
+
+    if (mentorado?.avatar) {
+      const img = await fetchImageBuffer(mentorado.avatar)
+      if (img) {
+        return new NextResponse(img.buffer, {
+          headers: {
+            'Content-Type': img.contentType,
+            'Cache-Control': 'public, max-age=300, s-maxage=300',
+          },
+        })
       }
-    )
+    }
 
-    if (!res.ok) return new NextResponse(null, { status: 404 })
+    // 2. Fallback: fetch fresh profile from Apify and save to storage
+    const profile = await fetchInstagramProfile(username)
+    if (!profile?.profile_pic_url) return new NextResponse(null, { status: 404 })
 
-    const data = await res.json()
-    const picUrl = data.profile_pic_url_hd || data.profile_pic_url
+    const storageUrl = await uploadAvatarToStorage(username, profile.profile_pic_url)
+    const imgUrl = storageUrl || profile.profile_pic_url
 
-    if (!picUrl) return new NextResponse(null, { status: 404 })
+    // Update the database
+    if (mentorado) {
+      await supabaseAdmin
+        .from('mentorados')
+        .update({ avatar: imgUrl })
+        .eq('instagram', username)
+    }
 
-    // Fetch the actual image
-    const imgRes = await fetch(picUrl)
-    if (!imgRes.ok) return new NextResponse(null, { status: 404 })
+    const img = await fetchImageBuffer(imgUrl)
+    if (!img) return new NextResponse(null, { status: 404 })
 
-    const imgBuffer = await imgRes.arrayBuffer()
-
-    return new NextResponse(imgBuffer, {
+    return new NextResponse(img.buffer, {
       headers: {
-        'Content-Type': imgRes.headers.get('content-type') || 'image/jpeg',
-        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+        'Content-Type': img.contentType,
+        'Cache-Control': 'public, max-age=300, s-maxage=300',
       },
     })
   } catch {

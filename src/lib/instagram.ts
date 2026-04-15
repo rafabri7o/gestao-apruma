@@ -1,5 +1,4 @@
-const RAPIDAPI_KEY = 'b98335a482msh9b5720ba320008ap1dd462jsna7f5ee749f64'
-const RAPIDAPI_HOST = 'instagram-looter2.p.rapidapi.com'
+const APIFY_TOKEN = process.env.APIFY_TOKEN!
 
 export type InstagramProfile = {
   username: string
@@ -16,39 +15,89 @@ export async function fetchInstagramProfile(username: string): Promise<Instagram
   try {
     const cleanUsername = username.replace('@', '').trim()
     const res = await fetch(
-      `https://${RAPIDAPI_HOST}/profile?username=${cleanUsername}`,
+      `https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}`,
       {
-        headers: {
-          'x-rapidapi-key': RAPIDAPI_KEY,
-          'x-rapidapi-host': RAPIDAPI_HOST,
-        },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usernames: [cleanUsername] }),
       }
     )
     if (!res.ok) return null
     const data = await res.json()
-    if (!data || !data.username) return null
+    if (!Array.isArray(data) || !data[0]) return null
+
+    const profile = data[0]
 
     // Count posts from last 7 days
-    const now = Math.floor(Date.now() / 1000)
-    const sevenDaysAgo = now - (7 * 24 * 60 * 60)
-    const edges = data.edge_owner_to_timeline_media?.edges || []
-    const postsLast7d = edges.filter(
-      (e: { node?: { taken_at_timestamp?: number } }) =>
-        (e.node?.taken_at_timestamp || 0) >= sevenDaysAgo
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+    const latestPosts = profile.latestPosts || []
+    const postsLast7d = latestPosts.filter(
+      (p: { timestamp?: string }) => {
+        const ts = p.timestamp ? new Date(p.timestamp).getTime() : 0
+        return ts >= sevenDaysAgo
+      }
     ).length
 
     return {
-      username: data.username || cleanUsername,
-      full_name: data.full_name || '',
-      profile_pic_url: data.profile_pic_url_hd || data.profile_pic_url || '',
-      follower_count: data.edge_followed_by?.count || 0,
-      following_count: data.edge_follow?.count || 0,
-      media_count: data.edge_owner_to_timeline_media?.count || 0,
+      username: profile.username || cleanUsername,
+      full_name: profile.fullName || '',
+      profile_pic_url: profile.profilePicUrlHD || profile.profilePicUrl || '',
+      follower_count: profile.followersCount || 0,
+      following_count: profile.followsCount || 0,
+      media_count: profile.postsCount || 0,
       posts_last_7d: postsLast7d,
-      biography: data.biography || '',
+      biography: profile.biography || '',
     }
   } catch (err) {
     console.error('Instagram API error:', err)
     return null
   }
+}
+
+export async function fetchMultipleProfiles(usernames: string[]): Promise<Map<string, InstagramProfile>> {
+  const results = new Map<string, InstagramProfile>()
+  if (usernames.length === 0) return results
+
+  try {
+    const cleanUsernames = usernames.map((u) => u.replace('@', '').trim())
+    const res = await fetch(
+      `https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usernames: cleanUsernames }),
+      }
+    )
+    if (!res.ok) return results
+    const data = await res.json()
+    if (!Array.isArray(data)) return results
+
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+
+    for (const profile of data) {
+      if (!profile.username) continue
+      const latestPosts = profile.latestPosts || []
+      const postsLast7d = latestPosts.filter(
+        (p: { timestamp?: string }) => {
+          const ts = p.timestamp ? new Date(p.timestamp).getTime() : 0
+          return ts >= sevenDaysAgo
+        }
+      ).length
+
+      results.set(profile.username.toLowerCase(), {
+        username: profile.username,
+        full_name: profile.fullName || '',
+        profile_pic_url: profile.profilePicUrlHD || profile.profilePicUrl || '',
+        follower_count: profile.followersCount || 0,
+        following_count: profile.followsCount || 0,
+        media_count: profile.postsCount || 0,
+        posts_last_7d: postsLast7d,
+        biography: profile.biography || '',
+      })
+    }
+  } catch (err) {
+    console.error('Instagram batch API error:', err)
+  }
+
+  return results
 }

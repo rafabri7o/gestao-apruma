@@ -55,6 +55,21 @@ export default function CadastrarPage() {
             posts: data.posts_last_7d ?? prev.posts,
             ...(data.full_name && !prev.nome ? { nome: data.full_name } : {}),
           }))
+          // Upload avatar to permanent storage
+          if (data.profile_pic_url) {
+            fetch('/api/upload-avatar', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username, imageUrl: data.profile_pic_url }),
+            })
+              .then((r) => r.json())
+              .then((result) => {
+                if (result.url) {
+                  setForm((prev) => ({ ...prev, avatar: result.url }))
+                }
+              })
+              .catch(() => {})
+          }
         } else {
           setIgProfile(null)
         }

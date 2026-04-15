@@ -141,6 +141,7 @@ export default function Dashboard() {
         <MentoradosTable
           mentorados={filtered}
           onEdit={setEditing}
+          lastUpdate={lastUpdate}
         />
       )}
 

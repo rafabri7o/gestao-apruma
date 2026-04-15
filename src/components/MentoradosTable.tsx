@@ -6,9 +6,10 @@ import { formatNumber, calcGrowth, calcTempoRestante } from '@/lib/utils'
 type Props = {
   mentorados: Mentorado[]
   onEdit: (m: Mentorado) => void
+  lastUpdate?: string | null
 }
 
-export default function MentoradosTable({ mentorados, onEdit }: Props) {
+export default function MentoradosTable({ mentorados, onEdit, lastUpdate }: Props) {
   if (mentorados.length === 0) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center text-gray-400 animate-fade-in">
@@ -49,12 +50,20 @@ export default function MentoradosTable({ mentorados, onEdit }: Props) {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-brand-100 overflow-hidden flex-shrink-0">
-                        {m.instagram ? (
-                          <img src={`/api/avatar/${m.instagram}`} alt={m.nome} className="w-full h-full object-cover" />
+                        {m.avatar && m.avatar.includes('supabase') ? (
+                          <img
+                            src={`${m.avatar}${lastUpdate ? `?t=${lastUpdate}` : ''}`}
+                            alt={m.nome}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=80` }}
+                          />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-brand-600 font-bold">
-                            {m.nome.charAt(0).toUpperCase()}
-                          </div>
+                          <img
+                            src={m.instagram ? `/api/avatar/${m.instagram}${lastUpdate ? `?t=${lastUpdate}` : ''}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=80`}
+                            alt={m.nome}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nome)}&background=E8DEF8&color=6B21A8&size=80` }}
+                          />
                         )}
                       </div>
                       <div>

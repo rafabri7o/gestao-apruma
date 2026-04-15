@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 const navItems = [
   { label: 'Dashboard', href: '/', icon: '📊' },
   { label: 'Cadastrar', href: '/cadastrar', icon: '➕' },
+  { label: 'SOS Mentores', href: '/sos-mentores', icon: '🆘' },
 ]
 
 export default function Sidebar() {
