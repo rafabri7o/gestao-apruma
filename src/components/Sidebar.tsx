@@ -12,6 +12,7 @@ const allNavItems = [
   { label: 'SOS Mentores', href: '/sos-mentores', icon: '🆘', roles: ['admin', 'gerente', 'mentor'] as UserRole[] },
   { label: 'SOS CS', href: '/sos-cs', icon: '⚠️', roles: ['admin', 'gerente'] as UserRole[] },
   { label: 'Toque do Rafa', href: '/toque-do-rafa', icon: '🎙️', roles: ['admin', 'gerente', 'mentor'] as UserRole[] },
+  { label: 'Pesquisa', href: '/pesquisa', icon: '🔍', roles: ['admin', 'gerente', 'mentor'] as UserRole[] },
 ]
 
 function useSosCsBells(role: UserRole) {
