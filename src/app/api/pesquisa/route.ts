@@ -15,6 +15,20 @@ function postViews(p: InstagramPost) {
   return Math.max(p.video_plays, p.video_views, 0)
 }
 
+function dayKey(iso: string) {
+  return iso.slice(0, 10)
+}
+
+type DailyPoint = {
+  date: string
+  followers: number
+  following: number
+  posts: number
+  followers_change: number
+  following_change: number
+  posts_change: number
+}
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null)
   const rawUsername: string | undefined = body?.username
@@ -46,19 +60,16 @@ export async function POST(request: Request) {
     .sort((a, b) => postViews(b) - postViews(a))
     .slice(0, 20)
 
-  let growth: {
-    followers_start: number | null
-    followers_change: number
-    followers_change_pct: number
-    since_date: string | null
-    has_history: boolean
-  } = {
-    followers_start: null,
+  let growth = {
+    followers_start: null as number | null,
     followers_change: 0,
     followers_change_pct: 0,
-    since_date: null,
+    since_date: null as string | null,
     has_history: false,
   }
+
+  let dailySeries: DailyPoint[] = []
+  let isTracked = false
 
   try {
     await supabaseAdmin.from('pesquisa_snapshots').insert({
@@ -69,16 +80,30 @@ export async function POST(request: Request) {
     })
 
     const sinceIso = new Date(since).toISOString()
-    const { data: snapshots } = await supabaseAdmin
-      .from('pesquisa_snapshots')
-      .select('followers, created_at')
-      .eq('username', username)
-      .lte('created_at', sinceIso)
-      .order('created_at', { ascending: false })
-      .limit(1)
 
-    if (snapshots && snapshots.length > 0) {
-      const oldest = snapshots[0]
+    const [{ data: oldSnap }, { data: periodSnaps }, { data: trackedRow }] = await Promise.all([
+      supabaseAdmin
+        .from('pesquisa_snapshots')
+        .select('followers, following, posts, created_at')
+        .eq('username', username)
+        .lte('created_at', sinceIso)
+        .order('created_at', { ascending: false })
+        .limit(1),
+      supabaseAdmin
+        .from('pesquisa_snapshots')
+        .select('followers, following, posts, created_at')
+        .eq('username', username)
+        .gte('created_at', sinceIso)
+        .order('created_at', { ascending: true }),
+      supabaseAdmin
+        .from('pesquisa_tracked')
+        .select('username')
+        .eq('username', username)
+        .maybeSingle(),
+    ])
+
+    if (oldSnap && oldSnap.length > 0) {
+      const oldest = oldSnap[0]
       const change = profile.follower_count - oldest.followers
       const pct = oldest.followers > 0 ? (change / oldest.followers) * 100 : 0
       growth = {
@@ -89,8 +114,41 @@ export async function POST(request: Request) {
         has_history: true,
       }
     }
+
+    if (periodSnaps && periodSnaps.length > 0) {
+      const byDay = new Map<string, { followers: number; following: number; posts: number }>()
+      for (const s of periodSnaps) {
+        const key = dayKey(s.created_at)
+        byDay.set(key, { followers: s.followers, following: s.following, posts: s.posts })
+      }
+      const sortedDays = Array.from(byDay.keys()).sort()
+      let prev: { followers: number; following: number; posts: number } | null = null
+      if (oldSnap && oldSnap.length > 0) {
+        prev = {
+          followers: oldSnap[0].followers,
+          following: oldSnap[0].following,
+          posts: oldSnap[0].posts,
+        }
+      }
+      for (const key of sortedDays) {
+        const d = byDay.get(key)!
+        dailySeries.push({
+          date: key,
+          followers: d.followers,
+          following: d.following,
+          posts: d.posts,
+          followers_change: prev ? d.followers - prev.followers : 0,
+          following_change: prev ? d.following - prev.following : 0,
+          posts_change: prev ? d.posts - prev.posts : 0,
+        })
+        prev = d
+      }
+    }
+
+    isTracked = !!trackedRow
   } catch (err) {
-    console.error('Snapshot error:', err)
+    console.error('Snapshot/daily error:', err)
+    dailySeries = []
   }
 
   return NextResponse.json({
@@ -107,5 +165,7 @@ export async function POST(request: Request) {
     period_days: days,
     posts_in_period_count: postsInPeriod.length,
     top_posts: topPosts,
+    daily_series: dailySeries,
+    is_tracked: isTracked,
   })
 }

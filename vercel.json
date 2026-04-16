@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/update-instagram",
       "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron/pesquisa-snapshots",
+      "schedule": "0 12 * * *"
     }
   ]
 }

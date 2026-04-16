@@ -18,6 +18,16 @@ type Post = {
   video_duration: number | null
 }
 
+type DailyPoint = {
+  date: string
+  followers: number
+  following: number
+  posts: number
+  followers_change: number
+  following_change: number
+  posts_change: number
+}
+
 type PesquisaResult = {
   profile: {
     username: string
@@ -38,6 +48,8 @@ type PesquisaResult = {
   period_days: number
   posts_in_period_count: number
   top_posts: Post[]
+  daily_series: DailyPoint[]
+  is_tracked: boolean
 }
 
 const PERIOD_OPTIONS = [7, 15, 30, 60, 90] as const
@@ -59,12 +71,86 @@ function formatDate(iso: string) {
   }
 }
 
+function formatShortDate(d: string) {
+  try {
+    return new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+    })
+  } catch {
+    return d
+  }
+}
+
+function formatWeekday(d: string) {
+  try {
+    return new Date(d + 'T00:00:00')
+      .toLocaleDateString('pt-BR', { weekday: 'short' })
+      .replace('.', '')
+  } catch {
+    return ''
+  }
+}
+
+function FollowersChart({ points }: { points: DailyPoint[] }) {
+  if (points.length < 2) return null
+  const width = 800
+  const height = 200
+  const padX = 40
+  const padY = 20
+  const values = points.map((p) => p.followers)
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+  const stepX = (width - padX * 2) / (points.length - 1)
+  const path = points
+    .map((p, i) => {
+      const x = padX + i * stepX
+      const y = height - padY - ((p.followers - min) / range) * (height - padY * 2)
+      return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`
+    })
+    .join(' ')
+  const areaPath = `${path} L ${(padX + (points.length - 1) * stepX).toFixed(1)} ${height - padY} L ${padX} ${height - padY} Z`
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
+      <defs>
+        <linearGradient id="followersGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="rgb(124 58 237)" stopOpacity="0.3" />
+          <stop offset="100%" stopColor="rgb(124 58 237)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill="url(#followersGradient)" />
+      <path d={path} fill="none" stroke="rgb(124 58 237)" strokeWidth="2" />
+      <text x={padX} y={padY - 4} fontSize="10" fill="#9ca3af">
+        {formatNumber(max)}
+      </text>
+      <text x={padX} y={height - 4} fontSize="10" fill="#9ca3af">
+        {formatNumber(min)}
+      </text>
+    </svg>
+  )
+}
+
+function ChangeCell({ value }: { value: number }) {
+  if (value === 0) return <span className="text-gray-400">--</span>
+  const color = value > 0 ? 'text-green-600' : 'text-red-600'
+  const sign = value > 0 ? '+' : ''
+  return (
+    <span className={`${color} font-medium`}>
+      {sign}
+      {value.toLocaleString('pt-BR')}
+    </span>
+  )
+}
+
 export default function PesquisaPage() {
   const [username, setUsername] = useState('')
   const [days, setDays] = useState<number>(30)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<PesquisaResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [togglingTrack, setTogglingTrack] = useState(false)
 
   const handleSearch = async (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -95,12 +181,34 @@ export default function PesquisaPage() {
     }
   }
 
+  const handleToggleTrack = async () => {
+    if (!result) return
+    setTogglingTrack(true)
+    try {
+      const res = await fetch('/api/pesquisa/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: result.profile.username,
+          track: !result.is_tracked,
+        }),
+      })
+      if (res.ok) {
+        setResult({ ...result, is_tracked: !result.is_tracked })
+      }
+    } finally {
+      setTogglingTrack(false)
+    }
+  }
+
   const growthColor =
     result && result.growth.has_history
       ? result.growth.followers_change >= 0
         ? 'text-green-600'
         : 'text-red-600'
       : 'text-gray-400'
+
+  const dailyReversed = result ? [...result.daily_series].reverse() : []
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
@@ -110,7 +218,7 @@ export default function PesquisaPage() {
             <span>🔍</span> Pesquisa
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Pesquise qualquer perfil do Instagram para ver crescimento e principais posts.
+            Pesquise qualquer perfil do Instagram. Marque como rastreado pra capturar snapshot diário automaticamente.
           </p>
         </div>
 
@@ -191,9 +299,26 @@ export default function PesquisaPage() {
                 )}
 
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                    @{result.profile.username}
-                  </h2>
+                  <div className="flex items-start gap-2 flex-wrap">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                      @{result.profile.username}
+                    </h2>
+                    <button
+                      onClick={handleToggleTrack}
+                      disabled={togglingTrack}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
+                        result.is_tracked
+                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {togglingTrack
+                        ? '...'
+                        : result.is_tracked
+                          ? '✓ Rastreando diariamente'
+                          : '+ Rastrear diariamente'}
+                    </button>
+                  </div>
                   {result.profile.full_name && (
                     <p className="text-sm text-gray-500 uppercase tracking-wide">
                       {result.profile.full_name}
@@ -238,12 +363,75 @@ export default function PesquisaPage() {
                   Crescimento comparado a {formatDate(result.growth.since_date)} ({result.period_days} dias)
                 </p>
               )}
-              {!result.growth.has_history && (
+              {!result.growth.has_history && !result.is_tracked && (
                 <p className="text-xs text-amber-600 mt-4">
-                  Primeira pesquisa deste perfil. O crescimento começará a aparecer em buscas futuras conforme formamos histórico.
+                  Sem histórico ainda. Clique em &ldquo;Rastrear diariamente&rdquo; pra capturar snapshot todo dia automaticamente.
                 </p>
               )}
             </div>
+
+            {result.daily_series.length >= 2 && (
+              <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 mb-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  Evolução de seguidores ({result.period_days} dias)
+                </h3>
+                <FollowersChart points={result.daily_series} />
+              </div>
+            )}
+
+            {result.daily_series.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 mb-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Métricas diárias</h3>
+                <div className="overflow-x-auto -mx-4 sm:-mx-6">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
+                        <th className="text-left px-4 py-2 font-medium">Data</th>
+                        <th className="text-right px-4 py-2 font-medium">Seguidores</th>
+                        <th className="text-right px-4 py-2 font-medium">Δ</th>
+                        <th className="text-right px-4 py-2 font-medium">Seguindo</th>
+                        <th className="text-right px-4 py-2 font-medium">Δ</th>
+                        <th className="text-right px-4 py-2 font-medium">Posts</th>
+                        <th className="text-right px-4 py-2 font-medium">Δ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dailyReversed.map((d) => (
+                        <tr key={d.date} className="border-b border-gray-100">
+                          <td className="px-4 py-2 text-gray-700">
+                            <span className="text-gray-400 mr-2">{formatWeekday(d.date)}</span>
+                            {formatShortDate(d.date)}
+                          </td>
+                          <td className="px-4 py-2 text-right text-gray-900">
+                            {d.followers.toLocaleString('pt-BR')}
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            <ChangeCell value={d.followers_change} />
+                          </td>
+                          <td className="px-4 py-2 text-right text-gray-900">
+                            {d.following.toLocaleString('pt-BR')}
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            <ChangeCell value={d.following_change} />
+                          </td>
+                          <td className="px-4 py-2 text-right text-gray-900">
+                            {d.posts.toLocaleString('pt-BR')}
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            <ChangeCell value={d.posts_change} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {result.daily_series.length < result.period_days && (
+                  <p className="text-xs text-gray-400 mt-3">
+                    {result.daily_series.length} dia(s) registrado(s). O histórico cresce conforme o rastreamento diário acumula.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
