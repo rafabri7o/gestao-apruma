@@ -58,6 +58,14 @@ function postViews(p: Post) {
   return Math.max(p.video_plays, p.video_views, 0)
 }
 
+function proxiedImage(url: string) {
+  if (!url) return ''
+  if (/cdninstagram\.com|fbcdn\.net/i.test(url)) {
+    return `/api/pesquisa/image?url=${encodeURIComponent(url)}`
+  }
+  return url
+}
+
 function formatDate(iso: string) {
   if (!iso) return ''
   try {
@@ -290,7 +298,7 @@ export default function PesquisaPage() {
                 {result.profile.profile_pic_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={result.profile.profile_pic_url}
+                    src={proxiedImage(result.profile.profile_pic_url)}
                     alt={result.profile.username}
                     className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover flex-shrink-0"
                   />
@@ -462,7 +470,7 @@ export default function PesquisaPage() {
                         {p.display_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={p.display_url}
+                            src={proxiedImage(p.display_url)}
                             alt=""
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />
