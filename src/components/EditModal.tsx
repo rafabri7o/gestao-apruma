@@ -25,6 +25,7 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete, userRo
   const [saving, setSaving] = useState(false)
 
   const isAdmin = userRole === 'admin'
+  const canManageStatus = userRole === 'admin' || userRole === 'gerente'
   const canEditSeguidores = isAdmin
   const instagramChanged = form.instagram.replace('@', '').trim().toLowerCase() !== mentorado.instagram.replace('@', '').trim().toLowerCase()
 
@@ -196,7 +197,7 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete, userRo
         {/* Actions */}
         <div className="flex items-center justify-between p-6 border-t border-gray-100">
           <div className="flex gap-2">
-            {isAdmin && (
+            {canManageStatus && (
               <button
                 onClick={handleDelete}
                 className="px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
@@ -204,7 +205,7 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete, userRo
                 🗑️ Excluir
               </button>
             )}
-            {isAdmin && mentorado.status === 'ativo' && (
+            {canManageStatus && mentorado.status === 'ativo' && (
               <>
                 <button
                   onClick={async () => {
