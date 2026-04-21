@@ -169,10 +169,12 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete, userRo
           {/* Status indicator */}
           {mentorado.status !== 'ativo' && (
             <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium ${
-              mentorado.status === 'cancelou' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+              mentorado.status === 'cancelou' ? 'bg-red-50 text-red-700 border border-red-200'
+                : mentorado.status === 'finalizou' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-amber-50 text-amber-700 border border-amber-200'
             }`}>
-              <span>{mentorado.status === 'cancelou' ? '❌' : '⏸️'}</span>
-              {mentorado.status === 'cancelou' ? 'Cancelou' : 'Pausou'}
+              <span>{mentorado.status === 'cancelou' ? '❌' : mentorado.status === 'finalizou' ? '🏁' : '⏸️'}</span>
+              {mentorado.status === 'cancelou' ? 'Cancelou' : mentorado.status === 'finalizou' ? 'Finalizou' : 'Pausou'}
               {mentorado.status_at && (
                 <span className="text-xs opacity-70">
                   em {new Date(mentorado.status_at).toLocaleDateString('pt-BR')}
@@ -228,6 +230,17 @@ export default function EditModal({ mentorado, onClose, onSave, onDelete, userRo
                   className="px-3 py-2 text-sm font-medium text-amber-600 hover:bg-amber-50 rounded-xl transition-colors border border-amber-200"
                 >
                   ⏸️ Pausou
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm('Marcar como FINALIZOU?')) return
+                    await supabase.from('mentorados').update({ status: 'finalizou', status_at: new Date().toISOString() }).eq('id', mentorado.id)
+                    alert('Marcado como finalizou')
+                    onSave()
+                  }}
+                  className="px-3 py-2 text-sm font-medium text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors border border-emerald-200"
+                >
+                  🏁 Finalizou
                 </button>
               </>
             )}
